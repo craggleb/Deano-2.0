@@ -155,6 +155,28 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
     }
   };
 
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `Failed to delete task: ${response.status} ${response.statusText}`);
+      }
+
+      setEditingTask(null);
+      onTaskUpdate();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert(error instanceof Error ? error.message : 'Failed to delete task');
+    }
+  };
+
   const getStatusIcon = (status: TaskStatus) => {
     switch (status) {
       case 'Completed':
@@ -407,6 +429,7 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
           task={editingTask}
           onClose={() => setEditingTask(null)}
           onSubmit={handleEditTask}
+          onDelete={handleDeleteTask}
         />
       )}
     </>

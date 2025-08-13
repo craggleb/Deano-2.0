@@ -22,7 +22,7 @@ export const createTaskSchema = z.object({
   }),
   estimatedDurationMinutes: z.number().int().min(0).optional().default(30),
   allowParentAutoComplete: z.boolean().optional().default(false),
-  parentId: z.string().cuid().optional(),
+  parentId: z.string().cuid().optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
   labelIds: z.array(z.string().cuid()).optional(),
 });
 
@@ -42,14 +42,14 @@ export const updateTaskSchema = z.object({
   }),
   estimatedDurationMinutes: z.number().int().min(0).optional(),
   allowParentAutoComplete: z.boolean().optional(),
-  parentId: z.string().cuid().nullable().optional(),
+  parentId: z.string().cuid().nullable().optional().or(z.literal('')).transform(val => val === '' ? null : val),
   labelIds: z.array(z.string().cuid()).optional(),
 });
 
 export const taskFilterSchema = z.object({
   status: taskStatusSchema.optional(),
   priority: prioritySchema.optional(),
-  parentId: z.string().cuid().nullable().optional(),
+  parentId: z.string().cuid().nullable().optional().or(z.literal('')).transform(val => val === '' ? null : val),
   q: z.string().optional(),
   page: z.number().int().min(1).optional().default(1),
   limit: z.number().int().min(1).max(100).optional().default(20),
@@ -107,7 +107,7 @@ export const bulkImportTaskSchema = z.object({
   }),
   estimatedDurationMinutes: z.number().int().min(0).optional(),
   allowParentAutoComplete: z.boolean().optional(),
-  parentId: z.string().cuid().optional(),
+  parentId: z.string().cuid().optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
   dependencies: z.array(z.string().cuid()).optional(),
 });
 
