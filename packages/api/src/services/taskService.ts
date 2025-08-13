@@ -125,28 +125,9 @@ export class TaskService {
       });
     }
 
-    const task = await prisma.task.update({
+    await prisma.task.update({
       where: { id },
       data: taskData,
-      include: {
-        children: true,
-        parent: true,
-        dependencies: {
-          include: {
-            blockerTask: true,
-          },
-        },
-        blockingTasks: {
-          include: {
-            dependentTask: true,
-          },
-        },
-        taskLabels: {
-          include: {
-            label: true,
-          },
-        },
-      },
     });
 
     // Create audit entries for tracked changes
