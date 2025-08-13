@@ -220,6 +220,15 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
     }
   };
 
+  const formatStatusDisplay = (status: TaskStatus) => {
+    switch (status) {
+      case 'InProgress':
+        return 'In Progress';
+      default:
+        return status;
+    }
+  };
+
   const isOverdue = (task: Task) => {
     if (!task.dueAt) return false;
     return isAfter(new Date(), new Date(task.dueAt));
@@ -272,7 +281,7 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
                   <div className="flex items-center space-x-2 mt-1">
                     {getStatusIcon(task.status)}
                     <span className={`badge ${getStatusColor(task.status)}`}>
-                      {task.status}
+                      {formatStatusDisplay(task.status)}
                     </span>
                   </div>
 
