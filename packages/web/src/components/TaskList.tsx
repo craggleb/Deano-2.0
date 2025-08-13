@@ -348,6 +348,7 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
                             onTaskUpdate={onTaskUpdate}
                             isExpanded={true}
                             onToggle={() => toggleDependencies(task.id)}
+                            onEditTask={setEditingTask}
                           />
                         )}
                       </div>
