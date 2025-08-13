@@ -187,7 +187,13 @@ export class TaskController {
       const { id } = taskIdParamSchema.parse(req.params);
       const validatedData = createTaskSchema.parse(req.body);
       
-      const task = await taskService.addSubtask(id, validatedData);
+      // Set the parent ID for the subtask
+      const subtaskData = {
+        ...validatedData,
+        parentId: id,
+      };
+      
+      const task = await taskService.addSubtask(id, subtaskData);
       
       res.status(201).json({
         data: task,

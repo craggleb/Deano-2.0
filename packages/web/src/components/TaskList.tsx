@@ -19,6 +19,8 @@ import { Task, TaskStatus, Priority } from '@/types';
 import { isAfter, isBefore } from 'date-fns';
 import { formatLocalDateTime } from '@/lib/dateUtils';
 import EditTaskModal from './EditTaskModal';
+import SubtaskManager from './SubtaskManager';
+import DependencyManager from './DependencyManager';
 
 interface TaskListProps {
   tasks: Task[];
@@ -266,33 +268,11 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
                       )}
                     </div>
 
-                    {/* Subtasks */}
-                    {task.children && task.children.length > 0 && (
-                      <div className="mt-3">
-                        <button
-                          onClick={() => toggleExpanded(task.id)}
-                          className="flex items-center text-xs text-gray-500 hover:text-gray-700"
-                        >
-                          <ChevronRight 
-                            className={`w-3 h-3 mr-1 transition-transform ${
-                              expandedTasks.has(task.id) ? 'rotate-90' : ''
-                            }`} 
-                          />
-                          {task.children.length} subtasks
-                        </button>
-
-                        {expandedTasks.has(task.id) && (
-                          <div className="mt-2 ml-4 space-y-1">
-                            {task.children.map((subtask) => (
-                              <div key={subtask.id} className="flex items-center space-x-2 text-xs">
-                                {getStatusIcon(subtask.status)}
-                                <span className="text-gray-700">{subtask.title}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {/* Subtasks and Dependencies */}
+                    <div className="mt-3 space-y-3">
+                      <SubtaskManager parentTask={task} onTaskUpdate={onTaskUpdate} />
+                      <DependencyManager task={task} onTaskUpdate={onTaskUpdate} />
+                    </div>
                   </div>
                 </div>
 

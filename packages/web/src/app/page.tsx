@@ -57,6 +57,7 @@ export default function HomePage() {
 
   const handleCreateTask = async (taskData: any) => {
     try {
+      // First create the task
       const response = await fetch('/api/tasks', {
         method: 'POST',
         headers: {
@@ -68,6 +69,23 @@ export default function HomePage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error?.message || `Failed to create task: ${response.status} ${response.statusText}`);
+      }
+
+      const createdTask = await response.json();
+
+      // Then add dependencies if any
+      if (taskData.dependencies && taskData.dependencies.length > 0) {
+        const dependencyResponse = await fetch(`/api/tasks/${createdTask.data.id}/dependencies`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ dependsOnTaskIds: taskData.dependencies }),
+        });
+
+        if (!dependencyResponse.ok) {
+          console.warn('Failed to add dependencies, but task was created successfully');
+        }
       }
 
       setShowCreateModal(false);

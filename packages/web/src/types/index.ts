@@ -39,6 +39,7 @@ export interface CreateTaskInput {
   estimatedDurationMinutes?: number;
   allowParentAutoComplete?: boolean;
   parentId?: string;
+  dependencies?: string[];
 }
 
 export interface UpdateTaskInput {
