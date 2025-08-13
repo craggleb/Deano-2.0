@@ -114,11 +114,6 @@ export class TaskService {
             dependentTask: true,
           },
         },
-        taskLabels: {
-          include: {
-            label: true,
-          },
-        },
       },
     });
 
@@ -173,11 +168,6 @@ export class TaskService {
         blockingTasks: {
           include: {
             dependentTask: true,
-          },
-        },
-        taskLabels: {
-          include: {
-            label: true,
           },
         },
       },
@@ -239,11 +229,6 @@ export class TaskService {
           blockingTasks: {
             include: {
               dependentTask: true,
-            },
-          },
-          taskLabels: {
-            include: {
-              label: true,
             },
           },
         },
@@ -865,5 +850,154 @@ export class TaskService {
     const result = new Date(day);
     result.setHours(hours, minutes, 0, 0);
     return result;
+  }
+
+  async getTaskAnalytics(targetDate: Date, daysToLookBack: number = 1) {
+    const startOfTargetDate = startOfDay(targetDate);
+    const endOfTargetDate = new Date(startOfTargetDate);
+    endOfTargetDate.setDate(endOfTargetDate.getDate() + 1);
+    
+    const startOfLookbackPeriod = new Date(startOfTargetDate);
+    startOfLookbackPeriod.setDate(startOfLookbackPeriod.getDate() - daysToLookBack);
+
+    // Get tasks created in the target period
+    const addedTasks = await prisma.task.findMany({
+      where: {
+        createdAt: {
+          gte: startOfTargetDate,
+          lt: endOfTargetDate,
+        },
+      },
+      include: {
+        children: true,
+        parent: true,
+        dependencies: {
+          include: {
+            blockerTask: true,
+          },
+        },
+        blockingTasks: {
+          include: {
+            dependentTask: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // Get tasks completed in the target period
+    const completedTasks = await prisma.task.findMany({
+      where: {
+        status: 'Completed',
+        updatedAt: {
+          gte: startOfTargetDate,
+          lt: endOfTargetDate,
+        },
+      },
+      include: {
+        children: true,
+        parent: true,
+        dependencies: {
+          include: {
+            blockerTask: true,
+          },
+        },
+        blockingTasks: {
+          include: {
+            dependentTask: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    // Get overdue tasks as of the target date
+    const overdueTasks = await prisma.task.findMany({
+      where: {
+        status: {
+          not: 'Completed',
+        },
+        dueAt: {
+          lt: startOfTargetDate,
+        },
+      },
+      include: {
+        children: true,
+        parent: true,
+        dependencies: {
+          include: {
+            blockerTask: true,
+          },
+        },
+        blockingTasks: {
+          include: {
+            dependentTask: true,
+          },
+        },
+      },
+      orderBy: {
+        dueAt: 'asc',
+      },
+    });
+
+    // For status changes, we need to look at tasks that were updated in the target period
+    // but weren't created in that period (to avoid double-counting)
+    const statusChangedTasks = await prisma.task.findMany({
+      where: {
+        updatedAt: {
+          gte: startOfTargetDate,
+          lt: endOfTargetDate,
+        },
+        createdAt: {
+          lt: startOfTargetDate,
+        },
+        status: {
+          not: 'Todo', // Exclude tasks that might have just been created with default status
+        },
+      },
+      include: {
+        children: true,
+        parent: true,
+        dependencies: {
+          include: {
+            blockerTask: true,
+          },
+        },
+        blockingTasks: {
+          include: {
+            dependentTask: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    return {
+      date: startOfTargetDate.toISOString().split('T')[0],
+      summary: {
+        added: addedTasks,
+        completed: completedTasks,
+        overdue: overdueTasks,
+        statusChanged: statusChangedTasks.map(task => ({
+          task,
+          // Note: We can't determine the exact old status without audit logs,
+          // but we can show that the status was changed
+          oldStatus: 'Unknown',
+          newStatus: task.status,
+        })),
+      },
+      stats: {
+        totalAdded: addedTasks.length,
+        totalCompleted: completedTasks.length,
+        totalOverdue: overdueTasks.length,
+        totalStatusChanges: statusChangedTasks.length,
+      },
+    };
   }
 }

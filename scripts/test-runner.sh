@@ -37,20 +37,15 @@ command_exists() {
 # Function to run tests for a package using Docker
 run_package_tests() {
     local package=$1
-    local test_type=$2
     
-    print_status "Running $test_type tests for $package using Docker..."
+    print_status "Running tests for $package using Docker..."
     
-    if [ "$test_type" = "coverage" ]; then
-        docker-compose -f docker-compose.test.yml run --rm "${package}-test" npm run test:coverage
-    else
-        docker-compose -f docker-compose.test.yml run --rm "${package}-test" npm run test
-    fi
+    docker-compose -f docker-compose.test.yml run --rm "${package}-test" npm run test
     
     if [ $? -eq 0 ]; then
-        print_success "$package $test_type tests passed"
+        print_success "$package tests passed"
     else
-        print_error "$package $test_type tests failed"
+        print_error "$package tests failed"
         exit 1
     fi
 }
@@ -112,17 +107,12 @@ main() {
     print_status "Docker found - will use for running all tests in containers"
     
     # Parse command line arguments
-    TEST_TYPE="normal"
     RUN_LINT=true
     RUN_TYPE_CHECK=true
     PACKAGES=("api" "web")
     
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --coverage)
-                TEST_TYPE="coverage"
-                shift
-                ;;
             --no-lint)
                 RUN_LINT=false
                 shift
@@ -143,7 +133,6 @@ main() {
                 echo "Usage: $0 [OPTIONS]"
                 echo ""
                 echo "Options:"
-                echo "  --coverage        Run tests with coverage reports"
                 echo "  --no-lint         Skip linting"
                 echo "  --no-type-check   Skip type checking"
                 echo "  --api-only        Only test the API package"
@@ -190,22 +179,13 @@ main() {
     fi
     
     # Run tests
-    print_status "Running $TEST_TYPE tests..."
+    print_status "Running tests..."
     for package in "${PACKAGES[@]}"; do
-        run_package_tests "$package" "$TEST_TYPE"
+        run_package_tests "$package"
     done
     
     # Generate summary
     print_success "All tests completed successfully!"
-    
-    if [ "$TEST_TYPE" = "coverage" ]; then
-        print_status "Coverage reports generated:"
-        for package in "${PACKAGES[@]}"; do
-            if [ -d "packages/$package/coverage" ]; then
-                echo "  - packages/$package/coverage/index.html"
-            fi
-        done
-    fi
     
     # Stop test services
     if [ -f "docker-compose.test.yml" ]; then

@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
+import React from 'react';
 
 // Mock Next.js router
 vi.mock('next/navigation', () => ({
@@ -19,7 +20,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('next/image', () => ({
   default: ({ src, alt, ...props }: any) => {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={alt} {...props} />;
+    return React.createElement('img', { src, alt, ...props });
   },
 }));
 

@@ -477,4 +477,26 @@ export class TaskController {
       });
     }
   }
+
+  async getTaskAnalytics(req: Request, res: Response) {
+    try {
+      const { date, days } = req.query;
+      const targetDate = date ? new Date(date as string) : new Date();
+      const daysToLookBack = days ? parseInt(days as string) : 1;
+      
+      const analytics = await taskService.getTaskAnalytics(targetDate, daysToLookBack);
+      
+      res.json({
+        data: analytics,
+      });
+    } catch (error) {
+      console.error('Get task analytics error:', error);
+      res.status(500).json({
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Internal server error',
+        },
+      });
+    }
+  }
 }

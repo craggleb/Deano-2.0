@@ -34,8 +34,7 @@ services:
         condition: service_healthy
     volumes:
       - ./packages/api:/app/packages/api
-      - ./packages/api/coverage:/app/packages/api/coverage
-    command: ["npm", "run", "test:coverage"]
+    command: ["npm", "run", "test"]
 
   web-test:
     build:
@@ -47,8 +46,7 @@ services:
       NODE_ENV: test
     volumes:
       - ./packages/web:/app/packages/web
-      - ./packages/web/coverage:/app/packages/web/coverage
-    command: ["npm", "run", "test:coverage"]
+    command: ["npm", "run", "test"]
 
 volumes:
   postgres_test_data:

@@ -11,7 +11,6 @@
     "lint:fix": "next lint --fix",
     "type-check": "tsc --noEmit",
     "test": "vitest",
-    "test:coverage": "vitest --coverage",
     "test:ui": "vitest --ui"
   },
   "dependencies": {
@@ -41,7 +40,7 @@
     "@typescript-eslint/parser": "^6.15.0",
     "vitest": "^1.1.0",
     "@vitest/ui": "^1.1.0",
-    "@vitest/coverage-v8": "^1.1.0",
+
     "@vitejs/plugin-react": "^4.2.1",
     "@testing-library/react": "^14.1.2",
     "@testing-library/jest-dom": "^6.1.5",
