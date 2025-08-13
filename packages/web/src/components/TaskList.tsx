@@ -292,7 +292,7 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
                         onClick={() => toggleDependencies(task.id)}
                         className="hover:text-gray-700 hover:underline cursor-pointer"
                       >
-                        {task.dependencies?.length || 0} dependencies, {task.blockingTasks?.length || 0} dependent tasks
+                        {task.dependencies?.length || 0} dependencies | {task.blockingTasks?.length || 0} dependent tasks
                       </button>
                     </div>
 
