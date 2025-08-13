@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Calendar, BarChart3, TrendingUp, Clock, CheckCircle, AlertTriangle, Plus, Download } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { TrendingUp, Clock, CheckCircle, AlertTriangle, Plus } from 'lucide-react';
 import { Task, TaskStatus } from '@/types';
 
 interface TaskAnalytics {
@@ -31,11 +31,7 @@ export default function UtilitiesPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [daysToLookBack, setDaysToLookBack] = useState(1);
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [selectedDate, daysToLookBack]);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -59,7 +55,11 @@ export default function UtilitiesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedDate, daysToLookBack]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   const getStatusIcon = (status: TaskStatus) => {
     switch (status) {

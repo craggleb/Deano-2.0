@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Filter, Search, Calendar, Clock, AlertTriangle, CheckCircle, Circle, Eye, EyeOff, SortAsc, SortDesc } from 'lucide-react';
+import { Plus, Search, Calendar, Clock, AlertTriangle, CheckCircle, Circle, Eye, EyeOff, SortAsc, SortDesc } from 'lucide-react';
 import TaskList from '@/components/TaskList';
 import CreateTaskModal from '@/components/CreateTaskModal';
 import { Task, TaskStatus, Priority } from '@/types';
@@ -24,23 +24,7 @@ export default function HomePage() {
   const scrollPositionRef = useRef<number>(0);
   const isUpdatingRef = useRef<boolean>(false);
 
-  useEffect(() => {
-    fetchTasks();
-  }, [filters]);
-
-  // Effect to restore scroll position after state updates
-  useEffect(() => {
-    if (isUpdatingRef.current && scrollPositionRef.current > 0) {
-      const timer = setTimeout(() => {
-        window.scrollTo(0, scrollPositionRef.current);
-        isUpdatingRef.current = false;
-      }, 100); // Small delay to ensure DOM has updated
-      
-      return () => clearTimeout(timer);
-    }
-  }, [tasks, loading]); // Trigger when tasks or loading state changes
-
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -69,7 +53,23 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  // Effect to restore scroll position after state updates
+  useEffect(() => {
+    if (isUpdatingRef.current && scrollPositionRef.current > 0) {
+      const timer = setTimeout(() => {
+        window.scrollTo(0, scrollPositionRef.current);
+        isUpdatingRef.current = false;
+      }, 100); // Small delay to ensure DOM has updated
+      
+      return () => clearTimeout(timer);
+    }
+  }, [tasks, loading]); // Trigger when tasks or loading state changes
 
   const handleCreateTask = async (taskData: any) => {
     try {
@@ -117,9 +117,9 @@ export default function HomePage() {
     scrollPositionRef.current = window.scrollY;
     isUpdatingRef.current = true;
     fetchTasks();
-  }, []);
+  }, [fetchTasks]);
 
-  const getStatusIcon = (status: TaskStatus) => {
+  const _getStatusIcon = (status: TaskStatus) => {
     switch (status) {
       case 'Completed':
         return <CheckCircle className="w-4 h-4 text-success-600" />;
@@ -132,7 +132,7 @@ export default function HomePage() {
     }
   };
 
-  const getPriorityColor = (priority: Priority) => {
+  const _getPriorityColor = (priority: Priority) => {
     switch (priority) {
       case 'High':
         return 'priority-high';
@@ -145,7 +145,7 @@ export default function HomePage() {
     }
   };
 
-  const getStatusColor = (status: TaskStatus) => {
+  const _getStatusColor = (status: TaskStatus) => {
     switch (status) {
       case 'Todo':
         return 'status-todo';
