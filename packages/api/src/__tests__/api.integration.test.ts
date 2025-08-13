@@ -180,7 +180,7 @@ describe('API Integration Tests', () => {
 
     describe('PUT /api/tasks/:id', () => {
           it('should update task', async () => {
-      // Create task via API
+      // Create task via API and immediately use it
       const createResponse = await request(app)
         .post('/api/tasks')
         .send({
@@ -189,7 +189,12 @@ describe('API Integration Tests', () => {
         .expect(201);
 
       const task = createResponse.body.data;
+      
+      // Verify task was created
+      expect(task.id).toBeDefined();
+      expect(task.title).toBe('Original Title');
 
+      // Update the task
       const response = await request(app)
         .put(`/api/tasks/${task.id}`)
         .send({
@@ -572,6 +577,11 @@ describe('API Integration Tests', () => {
         .expect(201);
       const task = taskResponse.body.data;
 
+      // Verify task was created
+      expect(task.id).toBeDefined();
+      expect(task.title).toBe('Test Task');
+
+      // Assign labels to task
       const response = await request(app)
         .post(`/api/tasks/${task.id}/labels`)
         .send({
@@ -610,12 +620,17 @@ describe('API Integration Tests', () => {
         .expect(201);
       const task = taskResponse.body.data;
 
+      // Verify task was created
+      expect(task.id).toBeDefined();
+      expect(task.title).toBe('Test Task');
+
       // Assign label via API
       await request(app)
         .post(`/api/tasks/${task.id}/labels`)
         .send({ labelIds: [label.id] })
         .expect(200);
 
+      // Get labels for task
       const response = await request(app)
         .get(`/api/tasks/${task.id}/labels`)
         .expect(200);
@@ -632,6 +647,11 @@ describe('API Integration Tests', () => {
         .expect(201);
       const task = taskResponse.body.data;
 
+      // Verify task was created
+      expect(task.id).toBeDefined();
+      expect(task.title).toBe('Test Task');
+
+      // Get labels for task (should be empty)
       const response = await request(app)
         .get(`/api/tasks/${task.id}/labels`)
         .expect(200);
