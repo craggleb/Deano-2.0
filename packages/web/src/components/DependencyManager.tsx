@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, X, ChevronRight, ChevronDown, Circle, Clock, AlertTriangle, CheckCircle, Search } from 'lucide-react';
+import { Plus, X, ChevronRight, ChevronDown, Circle, Clock, AlertTriangle, CheckCircle, Search, ArrowUpRight } from 'lucide-react';
 import { Task, TaskStatus, Priority, DependencyWithTask } from '@/types';
 
 interface DependencyManagerProps {
@@ -13,6 +13,7 @@ interface DependencyManagerProps {
 
 export default function DependencyManager({ task, onTaskUpdate, isExpanded = false, onToggle }: DependencyManagerProps) {
   const [dependencies, setDependencies] = useState<DependencyWithTask[]>([]);
+  const [blockingTasks, setBlockingTasks] = useState<DependencyWithTask[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -42,6 +43,7 @@ export default function DependencyManager({ task, onTaskUpdate, isExpanded = fal
       
       const data = await response.json();
       setDependencies(data.data?.dependencies || []);
+      setBlockingTasks(data.data?.blockingTasks || []);
     } catch (error) {
       console.error('Error fetching dependencies:', error);
     } finally {
@@ -168,76 +170,134 @@ export default function DependencyManager({ task, onTaskUpdate, isExpanded = fal
 
   return (
     <div className="mt-4 border-t border-gray-200 pt-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center text-sm font-medium text-gray-700">
-          Dependencies ({dependencies.length})
+      {/* Dependencies Section */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center text-sm font-medium text-gray-700">
+            Dependencies ({dependencies.length})
+          </div>
+          
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="btn btn-sm btn-primary"
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            Add Dependency
+          </button>
         </div>
-        
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="btn btn-sm btn-primary"
-        >
-          <Plus className="w-3 h-3 mr-1" />
-          Add Dependency
-        </button>
-      </div>
 
-      <div className="space-y-2">
-        {loading ? (
-          <div className="flex items-center justify-center py-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-            <span className="ml-2 text-sm text-gray-600">Loading dependencies...</span>
-          </div>
-        ) : dependencies.length === 0 ? (
-          <div className="text-center py-4 text-sm text-gray-500">
-            No dependencies yet. This task can be started immediately.
-          </div>
-        ) : (
-          dependencies.map((dependency) => (
-            <div key={dependency.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-3 flex-1">
-                <div className="flex items-center space-x-2">
-                  {getStatusIcon(dependency.blockerTask.status)}
-                  <span className={`badge badge-sm ${getStatusColor(dependency.blockerTask.status)}`}>
-                    {dependency.blockerTask.status}
-                  </span>
-                </div>
-
-                <div className="flex-1 min-w-0">
+        <div className="space-y-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+              <span className="ml-2 text-sm text-gray-600">Loading dependencies...</span>
+            </div>
+          ) : dependencies.length === 0 ? (
+            <div className="text-center py-4 text-sm text-gray-500">
+              No dependencies yet. This task can be started immediately.
+            </div>
+          ) : (
+            dependencies.map((dependency) => (
+              <div key={dependency.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-3 flex-1">
                   <div className="flex items-center space-x-2">
-                    <h4 className="text-sm font-medium text-gray-900 truncate">
-                      {dependency.blockerTask.title}
-                    </h4>
-                    <span className={`badge badge-sm ${getPriorityColor(dependency.blockerTask.priority)}`}>
-                      {dependency.blockerTask.priority}
+                    {getStatusIcon(dependency.blockerTask.status)}
+                    <span className={`badge badge-sm ${getStatusColor(dependency.blockerTask.status)}`}>
+                      {dependency.blockerTask.status}
                     </span>
                   </div>
-                  
-                  {dependency.blockerTask.description && (
-                    <p className="text-xs text-gray-600 mt-1 line-clamp-1">
-                      {dependency.blockerTask.description}
-                    </p>
-                  )}
-                  
-                  <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
-                    {dependency.blockerTask.dueAt && (
-                      <span>Due: {new Date(dependency.blockerTask.dueAt).toLocaleDateString()}</span>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <h4 className="text-sm font-medium text-gray-900 truncate">
+                        {dependency.blockerTask.title}
+                      </h4>
+                      <span className={`badge badge-sm ${getPriorityColor(dependency.blockerTask.priority)}`}>
+                        {dependency.blockerTask.priority}
+                      </span>
+                    </div>
+                    
+                    {dependency.blockerTask.description && (
+                      <p className="text-xs text-gray-600 mt-1 line-clamp-1">
+                        {dependency.blockerTask.description}
+                      </p>
                     )}
-                    <span>{dependency.blockerTask.estimatedDurationMinutes}m</span>
+                    
+                    <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
+                      {dependency.blockerTask.dueAt && (
+                        <span>Due: {new Date(dependency.blockerTask.dueAt).toLocaleDateString()}</span>
+                      )}
+                      <span>{dependency.blockerTask.estimatedDurationMinutes}m</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleRemoveDependency(dependency.blockerTask.id)}
+                  className="btn btn-sm btn-danger"
+                  title="Remove dependency"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Blocking Tasks Section */}
+      <div className="border-t border-gray-200 pt-4">
+        <div className="flex items-center mb-3">
+          <div className="flex items-center text-sm font-medium text-gray-700">
+            <ArrowUpRight className="w-4 h-4 mr-2 text-blue-600" />
+            Tasks that depend on this task ({blockingTasks.length})
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {blockingTasks.length === 0 ? (
+            <div className="text-center py-4 text-sm text-gray-500">
+              No tasks depend on this task yet.
+            </div>
+          ) : (
+            blockingTasks.map((blockingTask) => (
+              <div key={blockingTask.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center space-x-3 flex-1">
+                  <div className="flex items-center space-x-2">
+                    {getStatusIcon(blockingTask.dependentTask.status)}
+                    <span className={`badge badge-sm ${getStatusColor(blockingTask.dependentTask.status)}`}>
+                      {blockingTask.dependentTask.status}
+                    </span>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <h4 className="text-sm font-medium text-gray-900 truncate">
+                        {blockingTask.dependentTask.title}
+                      </h4>
+                      <span className={`badge badge-sm ${getPriorityColor(blockingTask.dependentTask.priority)}`}>
+                        {blockingTask.dependentTask.priority}
+                      </span>
+                    </div>
+                    
+                    {blockingTask.dependentTask.description && (
+                      <p className="text-xs text-gray-600 mt-1 line-clamp-1">
+                        {blockingTask.dependentTask.description}
+                      </p>
+                    )}
+                    
+                    <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
+                      {blockingTask.dependentTask.dueAt && (
+                        <span>Due: {new Date(blockingTask.dependentTask.dueAt).toLocaleDateString()}</span>
+                      )}
+                      <span>{blockingTask.dependentTask.estimatedDurationMinutes}m</span>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <button
-                onClick={() => handleRemoveDependency(dependency.blockerTask.id)}
-                className="btn btn-sm btn-danger"
-                title="Remove dependency"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
 
       {/* Add Dependency Modal */}
