@@ -82,7 +82,12 @@ describe('LabelService', () => {
       
       // Create a task and assign the label
       const task = await prisma.task.create({
-        data: { title: 'Test Task' },
+        data: { 
+          title: 'Test Task',
+          status: 'Todo',
+          priority: 'Medium',
+          estimatedDurationMinutes: 30,
+        },
       });
       
       await prisma.taskLabel.create({
@@ -129,7 +134,12 @@ describe('LabelService', () => {
     it('should include task count', async () => {
       const label = await labelService.createLabel({ name: 'Test Label' });
       const task = await prisma.task.create({
-        data: { title: 'Test Task' },
+        data: { 
+          title: 'Test Task',
+          status: 'Todo',
+          priority: 'Medium',
+          estimatedDurationMinutes: 30,
+        },
       });
       
       await prisma.taskLabel.create({
@@ -270,7 +280,12 @@ describe('LabelService', () => {
       const label1 = await labelService.createLabel({ name: 'Label 1' });
       const label2 = await labelService.createLabel({ name: 'Label 2' });
       const task = await prisma.task.create({
-        data: { title: 'Test Task' },
+        data: { 
+          title: 'Test Task',
+          status: 'Todo',
+          priority: 'Medium',
+          estimatedDurationMinutes: 30,
+        },
       });
 
       await labelService.assignLabelsToTask(task.id, [label1.id, label2.id]);
@@ -286,7 +301,12 @@ describe('LabelService', () => {
       const label2 = await labelService.createLabel({ name: 'Label 2' });
       const label3 = await labelService.createLabel({ name: 'Label 3' });
       const task = await prisma.task.create({
-        data: { title: 'Test Task' },
+        data: { 
+          title: 'Test Task',
+          status: 'Todo',
+          priority: 'Medium',
+          estimatedDurationMinutes: 30,
+        },
       });
 
       // First assignment
@@ -303,7 +323,12 @@ describe('LabelService', () => {
     it('should remove all labels when empty array is provided', async () => {
       const label = await labelService.createLabel({ name: 'Test Label' });
       const task = await prisma.task.create({
-        data: { title: 'Test Task' },
+        data: { 
+          title: 'Test Task',
+          status: 'Todo',
+          priority: 'Medium',
+          estimatedDurationMinutes: 30,
+        },
       });
 
       await prisma.taskLabel.create({
@@ -325,7 +350,12 @@ describe('LabelService', () => {
       const label1 = await labelService.createLabel({ name: 'Label 1' });
       const label2 = await labelService.createLabel({ name: 'Label 2' });
       const task = await prisma.task.create({
-        data: { title: 'Test Task' },
+        data: { 
+          title: 'Test Task',
+          status: 'Todo',
+          priority: 'Medium',
+          estimatedDurationMinutes: 30,
+        },
       });
 
       await prisma.taskLabel.createMany({
@@ -344,7 +374,12 @@ describe('LabelService', () => {
 
     it('should return empty array for task with no labels', async () => {
       const task = await prisma.task.create({
-        data: { title: 'Test Task' },
+        data: { 
+          title: 'Test Task',
+          status: 'Todo',
+          priority: 'Medium',
+          estimatedDurationMinutes: 30,
+        },
       });
 
       const taskLabels = await labelService.getTaskLabels(task.id);
@@ -359,7 +394,12 @@ describe('LabelService', () => {
         description: 'Test description',
       });
       const task = await prisma.task.create({
-        data: { title: 'Test Task' },
+        data: { 
+          title: 'Test Task',
+          status: 'Todo',
+          priority: 'Medium',
+          estimatedDurationMinutes: 30,
+        },
       });
 
       await prisma.taskLabel.create({

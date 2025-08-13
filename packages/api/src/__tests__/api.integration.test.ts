@@ -39,14 +39,14 @@ describe('API Integration Tests', () => {
           })
           .expect(201);
 
-        expect(response.body).toMatchObject({
+        expect(response.body.data).toMatchObject({
           title: 'Test Task',
           status: 'Todo',
           priority: 'Medium',
           estimatedDurationMinutes: 30,
           allowParentAutoComplete: false,
         });
-        expect(response.body.id).toBeDefined();
+        expect(response.body.data.id).toBeDefined();
       });
 
       it('should create a task with all fields', async () => {
@@ -62,7 +62,7 @@ describe('API Integration Tests', () => {
           })
           .expect(201);
 
-        expect(response.body).toMatchObject({
+        expect(response.body.data).toMatchObject({
           title: 'Complete Task',
           description: 'A complete task description',
           priority: 'High',
@@ -97,7 +97,7 @@ describe('API Integration Tests', () => {
           .get('/api/tasks')
           .expect(200);
 
-        expect(response.body).toEqual([]);
+        expect(response.body.data).toEqual([]);
       });
 
       it('should return all tasks', async () => {
@@ -114,10 +114,10 @@ describe('API Integration Tests', () => {
           .get('/api/tasks')
           .expect(200);
 
-        expect(response.body).toHaveLength(3);
-        expect(response.body.map((task: any) => task.title)).toContain('Task 1');
-        expect(response.body.map((task: any) => task.title)).toContain('Task 2');
-        expect(response.body.map((task: any) => task.title)).toContain('Task 3');
+        expect(response.body.data).toHaveLength(3);
+        expect(response.body.data.map((task: any) => task.title)).toContain('Task 1');
+        expect(response.body.data.map((task: any) => task.title)).toContain('Task 2');
+        expect(response.body.data.map((task: any) => task.title)).toContain('Task 3');
       });
 
       it('should filter tasks by status', async () => {
@@ -133,8 +133,8 @@ describe('API Integration Tests', () => {
           .get('/api/tasks?status=InProgress')
           .expect(200);
 
-        expect(response.body).toHaveLength(1);
-        expect(response.body[0].title).toBe('In Progress Task');
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.data[0].title).toBe('In Progress Task');
       });
 
       it('should filter tasks by priority', async () => {
@@ -150,8 +150,8 @@ describe('API Integration Tests', () => {
           .get('/api/tasks?priority=High')
           .expect(200);
 
-        expect(response.body).toHaveLength(1);
-        expect(response.body[0].title).toBe('High Priority');
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.data[0].title).toBe('High Priority');
       });
     });
 
@@ -165,7 +165,7 @@ describe('API Integration Tests', () => {
           .get(`/api/tasks/${task.id}`)
           .expect(200);
 
-        expect(response.body).toMatchObject({
+        expect(response.body.data).toMatchObject({
           id: task.id,
           title: 'Test Task',
         });
@@ -193,7 +193,7 @@ describe('API Integration Tests', () => {
           })
           .expect(200);
 
-        expect(response.body).toMatchObject({
+        expect(response.body.data).toMatchObject({
           id: task.id,
           title: 'Updated Title',
           description: 'Updated description',
@@ -245,7 +245,7 @@ describe('API Integration Tests', () => {
           })
           .expect(201);
 
-        expect(response.body).toMatchObject({
+        expect(response.body.data).toMatchObject({
           title: 'Child Task',
           parentId: parent.id,
         });
@@ -269,7 +269,7 @@ describe('API Integration Tests', () => {
           .post(`/api/tasks/${task.id}/complete`)
           .expect(200);
 
-        expect(response.body.status).toBe('Completed');
+        expect(response.body.data.status).toBe('Completed');
       });
 
       it('should return 404 for non-existent task', async () => {
@@ -292,7 +292,7 @@ describe('API Integration Tests', () => {
           .post(`/api/tasks/${task.id}/reopen`)
           .expect(200);
 
-        expect(response.body.status).toBe('Todo');
+        expect(response.body.data.status).toBe('Todo');
       });
 
       it('should return 404 for non-existent task', async () => {
@@ -315,13 +315,13 @@ describe('API Integration Tests', () => {
         const response = await request(app)
           .post(`/api/tasks/${dependent.id}/dependencies`)
           .send({
-            blockerTaskId: blocker.id,
+            dependsOnTaskId: blocker.id,
           })
           .expect(201);
 
-        expect(response.body).toMatchObject({
+        expect(response.body.data).toMatchObject({
           dependentTaskId: dependent.id,
-          blockerTaskId: blocker.id,
+          dependsOnTaskId: blocker.id,
         });
       });
 
@@ -343,7 +343,7 @@ describe('API Integration Tests', () => {
 
         await request(app)
           .post(`/api/tasks/${dependent.id}/dependencies`)
-          .send({ blockerTaskId: 'non-existent-id' })
+          .send({ dependsOnTaskId: 'non-existent-id' })
           .expect(404);
       });
     });
@@ -359,11 +359,11 @@ describe('API Integration Tests', () => {
           })
           .expect(201);
 
-        expect(response.body).toMatchObject({
+        expect(response.body.data).toMatchObject({
           name: 'Test Label',
           colour: '#3B82F6', // Default colour
         });
-        expect(response.body.id).toBeDefined();
+        expect(response.body.data.id).toBeDefined();
       });
 
       it('should create a label with all fields', async () => {
@@ -376,7 +376,7 @@ describe('API Integration Tests', () => {
           })
           .expect(201);
 
-        expect(response.body).toMatchObject({
+        expect(response.body.data).toMatchObject({
           name: 'Complete Label',
           colour: '#FF0000',
           description: 'A complete label description',
@@ -399,7 +399,7 @@ describe('API Integration Tests', () => {
           .get('/api/labels')
           .expect(200);
 
-        expect(response.body).toEqual([]);
+        expect(response.body.data).toEqual([]);
       });
 
       it('should return all labels ordered by name', async () => {
@@ -415,10 +415,10 @@ describe('API Integration Tests', () => {
           .get('/api/labels')
           .expect(200);
 
-        expect(response.body).toHaveLength(3);
-        expect(response.body[0].name).toBe('Alpha Label');
-        expect(response.body[1].name).toBe('Beta Label');
-        expect(response.body[2].name).toBe('Zebra Label');
+        expect(response.body.data).toHaveLength(3);
+        expect(response.body.data[0].name).toBe('Alpha Label');
+        expect(response.body.data[1].name).toBe('Beta Label');
+        expect(response.body.data[2].name).toBe('Zebra Label');
       });
     });
 
@@ -432,7 +432,7 @@ describe('API Integration Tests', () => {
           .get(`/api/labels/${label.id}`)
           .expect(200);
 
-        expect(response.body).toMatchObject({
+        expect(response.body.data).toMatchObject({
           id: label.id,
           name: 'Test Label',
         });
@@ -460,7 +460,7 @@ describe('API Integration Tests', () => {
           })
           .expect(200);
 
-        expect(response.body).toMatchObject({
+        expect(response.body.data).toMatchObject({
           id: label.id,
           name: 'Updated Name',
           colour: '#00FF00',
@@ -535,9 +535,9 @@ describe('API Integration Tests', () => {
           })
           .expect(200);
 
-        expect(response.body).toHaveLength(2);
-        expect(response.body.map((tl: any) => tl.label.name)).toContain('Label 1');
-        expect(response.body.map((tl: any) => tl.label.name)).toContain('Label 2');
+        expect(response.body.data).toHaveLength(2);
+        expect(response.body.data.map((tl: any) => tl.label.name)).toContain('Label 1');
+        expect(response.body.data.map((tl: any) => tl.label.name)).toContain('Label 2');
       });
 
       it('should return 404 for non-existent task', async () => {
@@ -568,8 +568,8 @@ describe('API Integration Tests', () => {
           .get(`/api/tasks/${task.id}/labels`)
           .expect(200);
 
-        expect(response.body).toHaveLength(1);
-        expect(response.body[0].label.name).toBe('Test Label');
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.data[0].label.name).toBe('Test Label');
       });
 
       it('should return empty array for task with no labels', async () => {
@@ -581,7 +581,7 @@ describe('API Integration Tests', () => {
           .get(`/api/tasks/${task.id}/labels`)
           .expect(200);
 
-        expect(response.body).toEqual([]);
+        expect(response.body.data).toEqual([]);
       });
 
       it('should return 404 for non-existent task', async () => {
@@ -611,8 +611,12 @@ describe('API Integration Tests', () => {
 
         await prisma.dependency.create({
           data: {
-            dependentTaskId: task2.id,
-            blockerTaskId: task1.id,
+            dependentTask: {
+              connect: { id: task2.id }
+            },
+            blockerTask: {
+              connect: { id: task1.id }
+            }
           },
         });
 
@@ -624,9 +628,9 @@ describe('API Integration Tests', () => {
           })
           .expect(200);
 
-        expect(response.body.tasks).toHaveLength(2);
-        expect(response.body.summary.totalPlannedMinutes).toBe(90);
-        expect(response.body.summary.violations).toBe(0);
+        expect(response.body.data.tasks).toHaveLength(2);
+        expect(response.body.data.summary.totalPlannedMinutes).toBe(90);
+        expect(response.body.data.summary.violations).toBe(0);
       });
 
       it('should use default parameters when not provided', async () => {
@@ -641,8 +645,8 @@ describe('API Integration Tests', () => {
           .post('/api/schedule/plan')
           .expect(200);
 
-        expect(response.body.tasks).toHaveLength(1);
-        expect(response.body.summary.totalPlannedMinutes).toBe(30);
+        expect(response.body.data.tasks).toHaveLength(1);
+        expect(response.body.data.summary.totalPlannedMinutes).toBe(30);
       });
     });
   });
