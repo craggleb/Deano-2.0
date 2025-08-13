@@ -1,0 +1,38 @@
+{
+  "name": "deano-task-manager",
+  "version": "1.0.0",
+  "description": "Full-stack task manager with dependency logic and agent-friendly API",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "cd packages/api && npm run dev",
+    "dev:web": "cd packages/web && npm run dev",
+    "build": "npm run build:api && npm run build:web",
+    "build:api": "cd packages/api && npm run build",
+    "build:web": "cd packages/web && npm run build",
+    "test": "npm run test:api && npm run test:web",
+    "test:api": "cd packages/api && npm run test",
+    "test:web": "cd packages/web && npm run test",
+    "lint": "npm run lint:api && npm run lint:web",
+    "lint:api": "cd packages/api && npm run lint",
+    "lint:web": "cd packages/web && npm run lint",
+    "format": "prettier --write \"packages/**/*.{ts,tsx,js,jsx,json,md}\"",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "setup": "npm install && npm run docker:up && npm run db:migrate && npm run db:seed",
+    "db:migrate": "cd packages/api && npm run db:migrate",
+    "db:seed": "cd packages/api && npm run db:seed",
+    "cli": "cd packages/api && npm run cli"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prettier": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

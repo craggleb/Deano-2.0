@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Task {
+  id                      String    @id @default(cuid())
+  title                   String    @db.VarChar(200)
+  description             String?   @db.Text
+  status                  TaskStatus @default(Todo)
+  priority                Priority  @default(Medium)
+  dueAt                   DateTime? @db.Timestamptz
+  estimatedDurationMinutes Int      @default(30)
+  allowParentAutoComplete Boolean   @default(false)
+  parentId                String?
+  scheduledStart          DateTime? @db.Timestamptz
+  scheduledEnd            DateTime? @db.Timestamptz
+  createdAt               DateTime  @default(now()) @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @db.Timestamptz
+
+  // Self-referencing relationship for parent/child tasks
+  parent   Task?   @relation("TaskHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Task[]  @relation("TaskHierarchy")
+
+  // Dependencies
+  dependencies     Dependency[] @relation("DependentTask")
+  blockingTasks    Dependency[] @relation("BlockerTask")
+
+  @@map("tasks")
+  @@index([status])
+  @@index([dueAt])
+  @@index([parentId])
+  @@index([priority])
+}
+
+model Dependency {
+  id               String @id @default(cuid())
+  taskId           String
+  dependsOnTaskId  String
+  createdAt        DateTime @default(now()) @db.Timestamptz
+
+  // Relationships
+  dependentTask    Task   @relation("DependentTask", fields: [taskId], references: [id], onDelete: Cascade)
+  blockerTask      Task   @relation("BlockerTask", fields: [dependsOnTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, dependsOnTaskId])
+  @@map("dependencies")
+  @@index([taskId])
+  @@index([dependsOnTaskId])
+}
+
+enum TaskStatus {
+  Todo
+  InProgress
+  Blocked
+  Completed
+  Canceled
+}
+
+enum Priority {
+  Low
+  Medium
+  High
+}
