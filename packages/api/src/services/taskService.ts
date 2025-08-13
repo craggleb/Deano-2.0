@@ -114,6 +114,11 @@ export class TaskService {
             dependentTask: true,
           },
         },
+        taskLabels: {
+          include: {
+            label: true,
+          },
+        },
       },
     });
 
@@ -122,7 +127,31 @@ export class TaskService {
       await this.labelService.assignLabelsToTask(id, labelIds);
     }
 
-    return task as TaskWithRelations;
+    // Fetch the updated task with labels
+    const updatedTask = await prisma.task.findUnique({
+      where: { id },
+      include: {
+        children: true,
+        parent: true,
+        dependencies: {
+          include: {
+            blockerTask: true,
+          },
+        },
+        blockingTasks: {
+          include: {
+            dependentTask: true,
+          },
+        },
+        taskLabels: {
+          include: {
+            label: true,
+          },
+        },
+      },
+    });
+
+    return updatedTask as TaskWithRelations;
   }
 
   async deleteTask(id: string): Promise<void> {
@@ -157,6 +186,11 @@ export class TaskService {
                 blockerTask: true,
               },
             },
+            taskLabels: {
+              include: {
+                label: true,
+              },
+            },
           },
         },
         parent: true,
@@ -168,6 +202,11 @@ export class TaskService {
         blockingTasks: {
           include: {
             dependentTask: true,
+          },
+        },
+        taskLabels: {
+          include: {
+            label: true,
           },
         },
       },
@@ -229,6 +268,11 @@ export class TaskService {
           blockingTasks: {
             include: {
               dependentTask: true,
+            },
+          },
+          taskLabels: {
+            include: {
+              label: true,
             },
           },
         },
@@ -881,6 +925,11 @@ export class TaskService {
             dependentTask: true,
           },
         },
+        taskLabels: {
+          include: {
+            label: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -907,6 +956,11 @@ export class TaskService {
         blockingTasks: {
           include: {
             dependentTask: true,
+          },
+        },
+        taskLabels: {
+          include: {
+            label: true,
           },
         },
       },
@@ -936,6 +990,11 @@ export class TaskService {
         blockingTasks: {
           include: {
             dependentTask: true,
+          },
+        },
+        taskLabels: {
+          include: {
+            label: true,
           },
         },
       },
@@ -970,6 +1029,11 @@ export class TaskService {
         blockingTasks: {
           include: {
             dependentTask: true,
+          },
+        },
+        taskLabels: {
+          include: {
+            label: true,
           },
         },
       },
