@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TaskService } from '../taskService';
 import { prisma } from '@/lib/database';
-import { BusinessRuleError, ValidationError, DependencyCycleError } from '@/types';
+import { BusinessRuleError, ValidationError, DependencyCycleError, TaskStatus, Priority } from '@/types';
 
 describe('TaskService', () => {
   let taskService: TaskService;
@@ -252,6 +252,112 @@ describe('TaskService', () => {
       await expect(
         taskService.reopenTask(task.id)
       ).rejects.toThrow(BusinessRuleError);
+    });
+  });
+
+  describe('Analytics', () => {
+    it('should track status changes in analytics', async () => {
+      // Create a task
+      const task = await taskService.createTask({
+        title: 'Test Task for Analytics',
+        description: 'Testing status change tracking',
+        status: TaskStatus.Todo,
+        priority: Priority.Medium,
+      });
+
+      // Update the task status to trigger audit trail
+      await taskService.updateTask(task.id, {
+        status: TaskStatus.InProgress,
+      });
+
+      // Update again to Completed
+      await taskService.updateTask(task.id, {
+        status: TaskStatus.Completed,
+      });
+
+      // Get analytics for today
+      const today = new Date();
+      const analytics = await taskService.getTaskAnalytics(today, 1);
+
+      // Verify that status changes are tracked
+      expect(analytics.stats.totalStatusChanges).toBe(2);
+      expect(analytics.summary.statusChanged).toHaveLength(2);
+
+      // Verify the first status change (Todo -> InProgress)
+      const firstChange = analytics.summary.statusChanged[1]; // Most recent first
+      expect(firstChange.task.id).toBe(task.id);
+      expect(firstChange.oldStatus).toBe(TaskStatus.Todo);
+      expect(firstChange.newStatus).toBe(TaskStatus.InProgress);
+
+      // Verify the second status change (InProgress -> Completed)
+      const secondChange = analytics.summary.statusChanged[0]; // Most recent first
+      expect(secondChange.task.id).toBe(task.id);
+      expect(secondChange.oldStatus).toBe(TaskStatus.InProgress);
+      expect(secondChange.newStatus).toBe(TaskStatus.Completed);
+    });
+
+    it('should not track non-status changes in status analytics', async () => {
+      // Create a task
+      const task = await taskService.createTask({
+        title: 'Test Task for Analytics',
+        description: 'Testing non-status changes',
+        status: TaskStatus.Todo,
+        priority: Priority.Medium,
+      });
+
+      // Update only the title (not status)
+      await taskService.updateTask(task.id, {
+        title: 'Updated Title',
+      });
+
+      // Get analytics for today
+      const today = new Date();
+      const analytics = await taskService.getTaskAnalytics(today, 1);
+
+      // Verify that no status changes are tracked
+      expect(analytics.stats.totalStatusChanges).toBe(0);
+      expect(analytics.summary.statusChanged).toHaveLength(0);
+    });
+
+    it('should track multiple field changes in audit trail', async () => {
+      // Create a task
+      const task = await taskService.createTask({
+        title: 'Test Task for Analytics',
+        description: 'Testing multiple field changes',
+        status: TaskStatus.Todo,
+        priority: Priority.Medium,
+      });
+
+      // Update multiple fields at once
+      await taskService.updateTask(task.id, {
+        title: 'Updated Title',
+        status: TaskStatus.InProgress,
+        priority: Priority.High,
+      });
+
+      // Check that audit entries were created for all changed fields
+      const audits = await prisma.taskAudit.findMany({
+        where: { taskId: task.id },
+        orderBy: { changedAt: 'asc' },
+      });
+
+      expect(audits).toHaveLength(3);
+      
+      const titleAudit = audits.find(a => a.fieldName === 'title');
+      const statusAudit = audits.find(a => a.fieldName === 'status');
+      const priorityAudit = audits.find(a => a.fieldName === 'priority');
+
+      expect(titleAudit).toBeDefined();
+      expect(titleAudit?.oldValue).toBe('Test Task for Analytics');
+      expect(titleAudit?.newValue).toBe('Updated Title');
+
+      expect(statusAudit).toBeDefined();
+      expect(statusAudit?.oldValue).toBe('Todo');
+      expect(statusAudit?.newValue).toBe('InProgress');
+
+      expect(priorityAudit).toBeDefined();
+      expect(priorityAudit?.oldValue).toBe('Medium');
+      expect(priorityAudit?.newValue).toBe('High');
     });
   });
 });

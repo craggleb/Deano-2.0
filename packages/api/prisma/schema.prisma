@@ -36,6 +36,9 @@ model Task {
   // Labels
   taskLabels TaskLabel[]
 
+  // Audit trail
+  audits TaskAudit[]
+
   @@map("tasks")
   @@index([status])
   @@index([dueAt])
@@ -88,6 +91,23 @@ model Dependency {
   @@map("dependencies")
   @@index([taskId])
   @@index([dependsOnTaskId])
+}
+
+model TaskAudit {
+  id          String     @id @default(cuid())
+  taskId      String
+  fieldName   String     @db.VarChar(50) // e.g., 'status', 'priority', 'title'
+  oldValue    String?    @db.Text
+  newValue    String?    @db.Text
+  changedAt   DateTime   @default(now()) @db.Timestamptz
+
+  // Relationships
+  task        Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_audits")
+  @@index([taskId])
+  @@index([fieldName])
+  @@index([changedAt])
 }
 
 enum TaskStatus {

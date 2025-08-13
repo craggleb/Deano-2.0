@@ -98,29 +98,49 @@ export class TaskService {
 
     const { labelIds, ...taskData } = input;
 
-    const task = await prisma.task.update({
+    // Track status changes for analytics
+    const auditEntries: Array<{ fieldName: string; oldValue: string | null; newValue: string | null }> = [];
+    
+    if (input.status !== undefined && input.status !== existingTask.status) {
+      auditEntries.push({
+        fieldName: 'status',
+        oldValue: existingTask.status,
+        newValue: input.status,
+      });
+    }
+
+    if (input.priority !== undefined && input.priority !== existingTask.priority) {
+      auditEntries.push({
+        fieldName: 'priority',
+        oldValue: existingTask.priority,
+        newValue: input.priority,
+      });
+    }
+
+    if (input.title !== undefined && input.title !== existingTask.title) {
+      auditEntries.push({
+        fieldName: 'title',
+        oldValue: existingTask.title,
+        newValue: input.title,
+      });
+    }
+
+    await prisma.task.update({
       where: { id },
       data: taskData,
-      include: {
-        children: true,
-        parent: true,
-        dependencies: {
-          include: {
-            blockerTask: true,
-          },
-        },
-        blockingTasks: {
-          include: {
-            dependentTask: true,
-          },
-        },
-        taskLabels: {
-          include: {
-            label: true,
-          },
-        },
-      },
     });
+
+    // Create audit entries for tracked changes
+    if (auditEntries.length > 0) {
+      await prisma.taskAudit.createMany({
+        data: auditEntries.map(entry => ({
+          taskId: id,
+          fieldName: entry.fieldName,
+          oldValue: entry.oldValue,
+          newValue: entry.newValue,
+        })),
+      });
+    }
 
     // Update labels if provided
     if (labelIds !== undefined) {
@@ -1003,42 +1023,40 @@ export class TaskService {
       },
     });
 
-    // For status changes, we need to look at tasks that were updated in the target period
-    // but weren't created in that period (to avoid double-counting)
-    const statusChangedTasks = await prisma.task.findMany({
+    // Get actual status changes from audit trail
+    const statusChangeAudits = await prisma.taskAudit.findMany({
       where: {
-        updatedAt: {
+        fieldName: 'status',
+        changedAt: {
           gte: startOfTargetDate,
           lt: endOfTargetDate,
         },
-        createdAt: {
-          lt: startOfTargetDate,
-        },
-        status: {
-          not: 'Todo', // Exclude tasks that might have just been created with default status
-        },
       },
       include: {
-        children: true,
-        parent: true,
-        dependencies: {
+        task: {
           include: {
-            blockerTask: true,
-          },
-        },
-        blockingTasks: {
-          include: {
-            dependentTask: true,
-          },
-        },
-        taskLabels: {
-          include: {
-            label: true,
+            children: true,
+            parent: true,
+            dependencies: {
+              include: {
+                blockerTask: true,
+              },
+            },
+            blockingTasks: {
+              include: {
+                dependentTask: true,
+              },
+            },
+            taskLabels: {
+              include: {
+                label: true,
+              },
+            },
           },
         },
       },
       orderBy: {
-        updatedAt: 'desc',
+        changedAt: 'desc',
       },
     });
 
@@ -1048,19 +1066,17 @@ export class TaskService {
         added: addedTasks,
         completed: completedTasks,
         overdue: overdueTasks,
-        statusChanged: statusChangedTasks.map(task => ({
-          task,
-          // Note: We can't determine the exact old status without audit logs,
-          // but we can show that the status was changed
-          oldStatus: 'Unknown',
-          newStatus: task.status,
+        statusChanged: statusChangeAudits.map(audit => ({
+          task: audit.task,
+          oldStatus: audit.oldValue || 'Unknown',
+          newStatus: audit.newValue || 'Unknown',
         })),
       },
       stats: {
         totalAdded: addedTasks.length,
         totalCompleted: completedTasks.length,
         totalOverdue: overdueTasks.length,
-        totalStatusChanges: statusChangedTasks.length,
+        totalStatusChanges: statusChangeAudits.length,
       },
     };
   }
