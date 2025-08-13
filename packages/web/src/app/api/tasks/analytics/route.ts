@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -11,7 +14,8 @@ export async function GET(request: NextRequest) {
     if (date) queryParams.append('date', date);
     if (days) queryParams.append('days', days);
 
-    const apiUrl = process.env.API_URL || 'http://localhost:3001';
+    // Use internal Docker network URL for server-side API calls
+    const apiUrl = process.env.NODE_ENV === 'production' ? 'http://api:3001' : 'http://localhost:3001';
     const response = await fetch(`${apiUrl}/api/tasks/analytics?${queryParams.toString()}`);
 
     if (!response.ok) {

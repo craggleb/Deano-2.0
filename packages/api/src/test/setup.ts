@@ -1,5 +1,5 @@
-import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import { connectDatabase, disconnectDatabase, prisma } from '../lib/database';
+import { beforeAll, afterAll, beforeEach } from 'vitest';
+import { connectDatabase, disconnectDatabase } from '../lib/database';
 
 beforeAll(async () => {
   await connectDatabase();

@@ -303,6 +303,81 @@ router.get('/', taskController.listTasks.bind(taskController));
  *       409:
  *         description: Cannot delete task with children
  */
+/**
+ * @swagger
+ * /api/tasks/analytics:
+ *   get:
+ *     summary: Get task analytics and summaries
+ *     tags: [Tasks]
+ *     parameters:
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *           format: date
+ *           description: Date to analyse (YYYY-MM-DD format, defaults to today)
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 30
+ *           default: 1
+ *           description: Number of days to look back
+ *     responses:
+ *       200:
+ *         description: Task analytics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     date:
+ *                       type: string
+ *                       format: date
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         added:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/Task'
+ *                         statusChanged:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               task:
+ *                                 $ref: '#/components/schemas/Task'
+ *                               oldStatus:
+ *                                 type: string
+ *                               newStatus:
+ *                                 type: string
+ *                         completed:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/Task'
+ *                         overdue:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/Task'
+ *                     stats:
+ *                       type: object
+ *                       properties:
+ *                         totalAdded:
+ *                           type: integer
+ *                         totalStatusChanges:
+ *                           type: integer
+ *                         totalCompleted:
+ *                           type: integer
+ *                         totalOverdue:
+ *                           type: integer
+ */
+router.get('/analytics', taskController.getTaskAnalytics.bind(taskController));
+
 router.get('/:id', taskController.getTask.bind(taskController));
 router.patch('/:id', taskController.updateTask.bind(taskController));
 router.delete('/:id', taskController.deleteTask.bind(taskController));
@@ -592,80 +667,5 @@ router.post('/bulkImport', taskController.bulkImport.bind(taskController));
  *               type: string
  */
 router.get('/export', taskController.exportTasks.bind(taskController));
-
-/**
- * @swagger
- * /api/tasks/analytics:
- *   get:
- *     summary: Get task analytics and summaries
- *     tags: [Tasks]
- *     parameters:
- *       - in: query
- *         name: date
- *         schema:
- *           type: string
- *           format: date
- *           description: Date to analyse (YYYY-MM-DD format, defaults to today)
- *       - in: query
- *         name: days
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 30
- *           default: 1
- *           description: Number of days to look back
- *     responses:
- *       200:
- *         description: Task analytics retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 data:
- *                   type: object
- *                   properties:
- *                     date:
- *                       type: string
- *                       format: date
- *                     summary:
- *                       type: object
- *                       properties:
- *                         added:
- *                           type: array
- *                           items:
- *                             $ref: '#/components/schemas/Task'
- *                         statusChanged:
- *                           type: array
- *                           items:
- *                             type: object
- *                             properties:
- *                               task:
- *                                 $ref: '#/components/schemas/Task'
- *                               oldStatus:
- *                                 type: string
- *                               newStatus:
- *                                 type: string
- *                         completed:
- *                           type: array
- *                           items:
- *                             $ref: '#/components/schemas/Task'
- *                         overdue:
- *                           type: array
- *                           items:
- *                             $ref: '#/components/schemas/Task'
- *                     stats:
- *                       type: object
- *                       properties:
- *                         totalAdded:
- *                           type: integer
- *                         totalStatusChanges:
- *                           type: integer
- *                         totalCompleted:
- *                           type: integer
- *                         totalOverdue:
- *                           type: integer
- */
-router.get('/analytics', taskController.getTaskAnalytics.bind(taskController));
 
 export default router;
