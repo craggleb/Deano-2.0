@@ -11,7 +11,7 @@ COPY packages/api/package*.json ./packages/api/
 COPY packages/web/package*.json ./packages/web/
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Rebuild the source code only when needed
 FROM base AS builder

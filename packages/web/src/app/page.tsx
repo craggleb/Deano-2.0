@@ -235,6 +235,12 @@ export default function HomePage() {
               >
                 Labels
               </a>
+              <a
+                href="/utilities"
+                className="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                Utilities
+              </a>
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="btn btn-primary"
