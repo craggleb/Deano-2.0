@@ -175,6 +175,11 @@ export class TaskService {
             dependentTask: true,
           },
         },
+        taskLabels: {
+          include: {
+            label: true,
+          },
+        },
       },
     });
 
@@ -234,6 +239,11 @@ export class TaskService {
           blockingTasks: {
             include: {
               dependentTask: true,
+            },
+          },
+          taskLabels: {
+            include: {
+              label: true,
             },
           },
         },

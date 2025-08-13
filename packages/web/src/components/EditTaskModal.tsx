@@ -212,6 +212,7 @@ export default function EditTaskModal({ task, onClose, onSubmit }: EditTaskModal
               selectedLabels={selectedLabels}
               onLabelsChange={setSelectedLabels}
               showCreateButton={false}
+              showHeader={false}
             />
           </div>
 

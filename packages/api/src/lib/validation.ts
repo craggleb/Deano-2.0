@@ -23,6 +23,7 @@ export const createTaskSchema = z.object({
   estimatedDurationMinutes: z.number().int().min(0).optional().default(30),
   allowParentAutoComplete: z.boolean().optional().default(false),
   parentId: z.string().cuid().optional(),
+  labelIds: z.array(z.string().cuid()).optional(),
 });
 
 export const updateTaskSchema = z.object({
@@ -42,6 +43,7 @@ export const updateTaskSchema = z.object({
   estimatedDurationMinutes: z.number().int().min(0).optional(),
   allowParentAutoComplete: z.boolean().optional(),
   parentId: z.string().cuid().nullable().optional(),
+  labelIds: z.array(z.string().cuid()).optional(),
 });
 
 export const taskFilterSchema = z.object({

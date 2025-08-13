@@ -7,12 +7,14 @@ interface LabelManagerProps {
   selectedLabels?: string[];
   onLabelsChange?: (labelIds: string[]) => void;
   showCreateButton?: boolean;
+  showHeader?: boolean;
 }
 
 export default function LabelManager({ 
   selectedLabels = [], 
   onLabelsChange,
-  showCreateButton = true 
+  showCreateButton = true,
+  showHeader = true
 }: LabelManagerProps) {
   const [labels, setLabels] = useState<Label[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -126,17 +128,19 @@ export default function LabelManager({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Labels</h3>
-        {showCreateButton && (
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
-          >
-            Create Label
-          </button>
-        )}
-      </div>
+      {showHeader && (
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Labels</h3>
+          {showCreateButton && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+            >
+              Create Label
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="space-y-2">
         {labels.map(label => (

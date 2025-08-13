@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Label } from '@/types';
 import LabelManager from '@/components/LabelManager';
+import { ArrowLeft } from 'lucide-react';
 
 export default function LabelsPage() {
   const [labels, setLabels] = useState<Label[]>([]);
@@ -41,6 +42,15 @@ export default function LabelsPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
+          <div className="flex items-center mb-4">
+            <a
+              href="/"
+              className="flex items-center text-gray-600 hover:text-gray-900 transition-colors mr-4"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Tasks
+            </a>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Label Management</h1>
           <p className="text-gray-600">
             Create and manage labels to categorise your tasks. Labels help you organise and filter tasks more effectively.
