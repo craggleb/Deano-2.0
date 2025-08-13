@@ -125,7 +125,7 @@ export default function LabelsPage() {
               <div>
                 <h4 className="font-medium text-gray-900 mb-2">Creating Labels</h4>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Click "Create Label" to add a new label</li>
+                  <li>• Click &quot;Create Label&quot; to add a new label</li>
                   <li>• Choose a descriptive name and colour</li>
                   <li>• Add an optional description for context</li>
                 </ul>
