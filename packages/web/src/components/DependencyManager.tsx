@@ -9,9 +9,10 @@ interface DependencyManagerProps {
   onTaskUpdate: () => void;
   isExpanded?: boolean;
   onToggle?: () => void;
+  onEditTask?: (task: Task) => void;
 }
 
-export default function DependencyManager({ task, onTaskUpdate, isExpanded = false, onToggle }: DependencyManagerProps) {
+export default function DependencyManager({ task, onTaskUpdate, isExpanded = false, onToggle, onEditTask }: DependencyManagerProps) {
   const [dependencies, setDependencies] = useState<DependencyWithTask[]>([]);
   const [blockingTasks, setBlockingTasks] = useState<DependencyWithTask[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
@@ -209,7 +210,11 @@ export default function DependencyManager({ task, onTaskUpdate, isExpanded = fal
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
-                      <h4 className="text-sm font-medium text-gray-900 truncate">
+                      <h4 
+                        className={`text-sm font-medium text-gray-900 truncate ${onEditTask ? 'cursor-pointer hover:text-primary-600 hover:underline' : ''}`}
+                        onClick={() => onEditTask && onEditTask(dependency.blockerTask)}
+                        title={onEditTask ? 'Click to edit this task' : undefined}
+                      >
                         {dependency.blockerTask.title}
                       </h4>
                       <span className={`badge badge-sm ${getPriorityColor(dependency.blockerTask.priority)}`}>
@@ -272,7 +277,11 @@ export default function DependencyManager({ task, onTaskUpdate, isExpanded = fal
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
-                      <h4 className="text-sm font-medium text-gray-900 truncate">
+                      <h4 
+                        className={`text-sm font-medium text-gray-900 truncate ${onEditTask ? 'cursor-pointer hover:text-primary-600 hover:underline' : ''}`}
+                        onClick={() => onEditTask && onEditTask(blockingTask.dependentTask)}
+                        title={onEditTask ? 'Click to edit this task' : undefined}
+                      >
                         {blockingTask.dependentTask.title}
                       </h4>
                       <span className={`badge badge-sm ${getPriorityColor(blockingTask.dependentTask.priority)}`}>
