@@ -31,6 +31,8 @@ interface TaskListProps {
 export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps) {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set());
+  const [expandedDependencies, setExpandedDependencies] = useState<Set<string>>(new Set());
 
   const toggleExpanded = (taskId: string) => {
     const newExpanded = new Set(expandedTasks);
@@ -40,6 +42,26 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
       newExpanded.add(taskId);
     }
     setExpandedTasks(newExpanded);
+  };
+
+  const toggleSubtasks = (taskId: string) => {
+    const newExpanded = new Set(expandedSubtasks);
+    if (newExpanded.has(taskId)) {
+      newExpanded.delete(taskId);
+    } else {
+      newExpanded.add(taskId);
+    }
+    setExpandedSubtasks(newExpanded);
+  };
+
+  const toggleDependencies = (taskId: string) => {
+    const newExpanded = new Set(expandedDependencies);
+    if (newExpanded.has(taskId)) {
+      newExpanded.delete(taskId);
+    } else {
+      newExpanded.add(taskId);
+    }
+    setExpandedDependencies(newExpanded);
   };
 
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
@@ -260,19 +282,41 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
                         </span>
                       )}
                       <span>{task.estimatedDurationMinutes}m</span>
-                      {task.children && task.children.length > 0 && (
-                        <span>{task.children.length} subtasks</span>
-                      )}
-                      {task.dependencies && task.dependencies.length > 0 && (
-                        <span>{task.dependencies.length} dependencies</span>
-                      )}
+                      <button
+                        onClick={() => toggleSubtasks(task.id)}
+                        className="hover:text-gray-700 hover:underline cursor-pointer"
+                      >
+                        {task.children?.length || 0} subtasks
+                      </button>
+                      <button
+                        onClick={() => toggleDependencies(task.id)}
+                        className="hover:text-gray-700 hover:underline cursor-pointer"
+                      >
+                        {task.dependencies?.length || 0} dependencies
+                      </button>
                     </div>
 
-                    {/* Subtasks and Dependencies */}
-                    <div className="mt-3 space-y-3">
-                      <SubtaskManager parentTask={task} onTaskUpdate={onTaskUpdate} />
-                      <DependencyManager task={task} onTaskUpdate={onTaskUpdate} />
-                    </div>
+                    {/* Subtasks and Dependencies - only render when expanded */}
+                    {(expandedSubtasks.has(task.id) || expandedDependencies.has(task.id)) && (
+                      <div className="mt-3 space-y-3">
+                        {expandedSubtasks.has(task.id) && (
+                          <SubtaskManager 
+                            parentTask={task} 
+                            onTaskUpdate={onTaskUpdate}
+                            isExpanded={true}
+                            onToggle={() => toggleSubtasks(task.id)}
+                          />
+                        )}
+                        {expandedDependencies.has(task.id) && (
+                          <DependencyManager 
+                            task={task} 
+                            onTaskUpdate={onTaskUpdate}
+                            isExpanded={true}
+                            onToggle={() => toggleDependencies(task.id)}
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 

@@ -7,28 +7,29 @@ import { Task, TaskStatus, Priority, DependencyWithTask } from '@/types';
 interface DependencyManagerProps {
   task: Task;
   onTaskUpdate: () => void;
+  isExpanded?: boolean;
+  onToggle?: () => void;
 }
 
-export default function DependencyManager({ task, onTaskUpdate }: DependencyManagerProps) {
+export default function DependencyManager({ task, onTaskUpdate, isExpanded = false, onToggle }: DependencyManagerProps) {
   const [dependencies, setDependencies] = useState<DependencyWithTask[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTaskId, setSelectedTaskId] = useState('');
 
   useEffect(() => {
-    if (expanded) {
+    if (isExpanded) {
       fetchDependencies();
     }
-  }, [expanded, task.id]);
+  }, [isExpanded, task.id]);
 
   useEffect(() => {
-    if (expanded && dependencies.length >= 0) {
+    if (isExpanded && dependencies.length >= 0) {
       fetchAllTasks();
     }
-  }, [expanded, task.id, dependencies]);
+  }, [isExpanded, task.id, dependencies]);
 
   const fetchDependencies = async () => {
     try {
@@ -168,17 +169,9 @@ export default function DependencyManager({ task, onTaskUpdate }: DependencyMana
   return (
     <div className="mt-4 border-t border-gray-200 pt-4">
       <div className="flex items-center justify-between mb-3">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="flex items-center text-sm font-medium text-gray-700 hover:text-gray-900"
-        >
-          {expanded ? (
-            <ChevronDown className="w-4 h-4 mr-2" />
-          ) : (
-            <ChevronRight className="w-4 h-4 mr-2" />
-          )}
+        <div className="flex items-center text-sm font-medium text-gray-700">
           Dependencies ({dependencies.length})
-        </button>
+        </div>
         
         <button
           onClick={() => setShowAddModal(true)}
@@ -189,65 +182,63 @@ export default function DependencyManager({ task, onTaskUpdate }: DependencyMana
         </button>
       </div>
 
-      {expanded && (
-        <div className="space-y-2">
-          {loading ? (
-            <div className="flex items-center justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-              <span className="ml-2 text-sm text-gray-600">Loading dependencies...</span>
-            </div>
-          ) : dependencies.length === 0 ? (
-            <div className="text-center py-4 text-sm text-gray-500">
-              No dependencies yet. This task can be started immediately.
-            </div>
-          ) : (
-            dependencies.map((dependency) => (
-              <div key={dependency.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3 flex-1">
-                  <div className="flex items-center space-x-2">
-                    {getStatusIcon(dependency.blockerTask.status)}
-                    <span className={`badge badge-sm ${getStatusColor(dependency.blockerTask.status)}`}>
-                      {dependency.blockerTask.status}
-                    </span>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2">
-                      <h4 className="text-sm font-medium text-gray-900 truncate">
-                        {dependency.blockerTask.title}
-                      </h4>
-                      <span className={`badge badge-sm ${getPriorityColor(dependency.blockerTask.priority)}`}>
-                        {dependency.blockerTask.priority}
-                      </span>
-                    </div>
-                    
-                    {dependency.blockerTask.description && (
-                      <p className="text-xs text-gray-600 mt-1 line-clamp-1">
-                        {dependency.blockerTask.description}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
-                      {dependency.blockerTask.dueAt && (
-                        <span>Due: {new Date(dependency.blockerTask.dueAt).toLocaleDateString()}</span>
-                      )}
-                      <span>{dependency.blockerTask.estimatedDurationMinutes}m</span>
-                    </div>
-                  </div>
+      <div className="space-y-2">
+        {loading ? (
+          <div className="flex items-center justify-center py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+            <span className="ml-2 text-sm text-gray-600">Loading dependencies...</span>
+          </div>
+        ) : dependencies.length === 0 ? (
+          <div className="text-center py-4 text-sm text-gray-500">
+            No dependencies yet. This task can be started immediately.
+          </div>
+        ) : (
+          dependencies.map((dependency) => (
+            <div key={dependency.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center space-x-3 flex-1">
+                <div className="flex items-center space-x-2">
+                  {getStatusIcon(dependency.blockerTask.status)}
+                  <span className={`badge badge-sm ${getStatusColor(dependency.blockerTask.status)}`}>
+                    {dependency.blockerTask.status}
+                  </span>
                 </div>
 
-                <button
-                  onClick={() => handleRemoveDependency(dependency.blockerTask.id)}
-                  className="btn btn-sm btn-danger"
-                  title="Remove dependency"
-                >
-                  <X className="w-3 h-3" />
-                </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-2">
+                    <h4 className="text-sm font-medium text-gray-900 truncate">
+                      {dependency.blockerTask.title}
+                    </h4>
+                    <span className={`badge badge-sm ${getPriorityColor(dependency.blockerTask.priority)}`}>
+                      {dependency.blockerTask.priority}
+                    </span>
+                  </div>
+                  
+                  {dependency.blockerTask.description && (
+                    <p className="text-xs text-gray-600 mt-1 line-clamp-1">
+                      {dependency.blockerTask.description}
+                    </p>
+                  )}
+                  
+                  <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
+                    {dependency.blockerTask.dueAt && (
+                      <span>Due: {new Date(dependency.blockerTask.dueAt).toLocaleDateString()}</span>
+                    )}
+                    <span>{dependency.blockerTask.estimatedDurationMinutes}m</span>
+                  </div>
+                </div>
               </div>
-            ))
-          )}
-        </div>
-      )}
+
+              <button
+                onClick={() => handleRemoveDependency(dependency.blockerTask.id)}
+                className="btn btn-sm btn-danger"
+                title="Remove dependency"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
 
       {/* Add Dependency Modal */}
       {showAddModal && (

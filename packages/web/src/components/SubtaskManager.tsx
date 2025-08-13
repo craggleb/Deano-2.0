@@ -9,20 +9,21 @@ import EditTaskModal from './EditTaskModal';
 interface SubtaskManagerProps {
   parentTask: Task;
   onTaskUpdate: () => void;
+  isExpanded?: boolean;
+  onToggle?: () => void;
 }
 
-export default function SubtaskManager({ parentTask, onTaskUpdate }: SubtaskManagerProps) {
+export default function SubtaskManager({ parentTask, onTaskUpdate, isExpanded = false, onToggle }: SubtaskManagerProps) {
   const [subtasks, setSubtasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingSubtask, setEditingSubtask] = useState<Task | null>(null);
 
   useEffect(() => {
-    if (expanded) {
+    if (isExpanded) {
       fetchSubtasks();
     }
-  }, [expanded, parentTask.id]);
+  }, [isExpanded, parentTask.id]);
 
   const fetchSubtasks = async () => {
     try {
@@ -159,17 +160,9 @@ export default function SubtaskManager({ parentTask, onTaskUpdate }: SubtaskMana
   return (
     <div className="mt-4 border-t border-gray-200 pt-4">
       <div className="flex items-center justify-between mb-3">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="flex items-center text-sm font-medium text-gray-700 hover:text-gray-900"
-        >
-          {expanded ? (
-            <ChevronDown className="w-4 h-4 mr-2" />
-          ) : (
-            <ChevronRight className="w-4 h-4 mr-2" />
-          )}
+        <div className="flex items-center text-sm font-medium text-gray-700">
           Subtasks ({subtasks.length})
-        </button>
+        </div>
         
         <button
           onClick={() => setShowCreateModal(true)}
@@ -180,74 +173,72 @@ export default function SubtaskManager({ parentTask, onTaskUpdate }: SubtaskMana
         </button>
       </div>
 
-      {expanded && (
-        <div className="space-y-2">
-          {loading ? (
-            <div className="flex items-center justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-              <span className="ml-2 text-sm text-gray-600">Loading subtasks...</span>
-            </div>
-          ) : subtasks.length === 0 ? (
-            <div className="text-center py-4 text-sm text-gray-500">
-              No subtasks yet. Create one to get started!
-            </div>
-          ) : (
-            subtasks.map((subtask) => (
-              <div key={subtask.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3 flex-1">
+      <div className="space-y-2">
+        {loading ? (
+          <div className="flex items-center justify-center py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+            <span className="ml-2 text-sm text-gray-600">Loading subtasks...</span>
+          </div>
+        ) : subtasks.length === 0 ? (
+          <div className="text-center py-4 text-sm text-gray-500">
+            No subtasks yet. Create one to get started!
+          </div>
+        ) : (
+          subtasks.map((subtask) => (
+            <div key={subtask.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center space-x-3 flex-1">
+                <div className="flex items-center space-x-2">
+                  {getStatusIcon(subtask.status)}
+                  <span className={`badge badge-sm ${getStatusColor(subtask.status)}`}>
+                    {subtask.status}
+                  </span>
+                </div>
+
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2">
-                    {getStatusIcon(subtask.status)}
-                    <span className={`badge badge-sm ${getStatusColor(subtask.status)}`}>
-                      {subtask.status}
+                    <h4 className="text-sm font-medium text-gray-900 truncate">
+                      {subtask.title}
+                    </h4>
+                    <span className={`badge badge-sm ${getPriorityColor(subtask.priority)}`}>
+                      {subtask.priority}
                     </span>
                   </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2">
-                      <h4 className="text-sm font-medium text-gray-900 truncate">
-                        {subtask.title}
-                      </h4>
-                      <span className={`badge badge-sm ${getPriorityColor(subtask.priority)}`}>
-                        {subtask.priority}
-                      </span>
-                    </div>
-                    
-                    {subtask.description && (
-                      <p className="text-xs text-gray-600 mt-1 line-clamp-1">
-                        {subtask.description}
-                      </p>
+                  
+                  {subtask.description && (
+                    <p className="text-xs text-gray-600 mt-1 line-clamp-1">
+                      {subtask.description}
+                    </p>
+                  )}
+                  
+                  <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
+                    {subtask.dueAt && (
+                      <span>Due: {new Date(subtask.dueAt).toLocaleDateString()}</span>
                     )}
-                    
-                    <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
-                      {subtask.dueAt && (
-                        <span>Due: {new Date(subtask.dueAt).toLocaleDateString()}</span>
-                      )}
-                      <span>{subtask.estimatedDurationMinutes}m</span>
-                    </div>
+                    <span>{subtask.estimatedDurationMinutes}m</span>
                   </div>
                 </div>
-
-                <div className="flex items-center space-x-1">
-                  <button
-                    onClick={() => setEditingSubtask(subtask)}
-                    className="btn btn-sm btn-secondary"
-                    title="Edit subtask"
-                  >
-                    <Edit className="w-3 h-3" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteSubtask(subtask.id)}
-                    className="btn btn-sm btn-danger"
-                    title="Delete subtask"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
               </div>
-            ))
-          )}
-        </div>
-      )}
+
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => setEditingSubtask(subtask)}
+                  className="btn btn-sm btn-secondary"
+                  title="Edit subtask"
+                >
+                  <Edit className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => handleDeleteSubtask(subtask.id)}
+                  className="btn btn-sm btn-danger"
+                  title="Delete subtask"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
 
       {/* Create Subtask Modal */}
       {showCreateModal && (
