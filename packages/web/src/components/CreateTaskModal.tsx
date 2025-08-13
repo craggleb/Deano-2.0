@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, Calendar, Clock } from 'lucide-react';
+import { X, Calendar, Clock, AlertTriangle } from 'lucide-react';
 import { TaskStatus, Priority, CreateTaskInput } from '@/types';
 
 const createTaskSchema = z.object({
@@ -26,6 +26,7 @@ interface CreateTaskModalProps {
 
 export default function CreateTaskModal({ onClose, onSubmit }: CreateTaskModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Get tomorrow's date in datetime-local format
   const getTomorrowDateTime = () => {
@@ -59,12 +60,14 @@ export default function CreateTaskModal({ onClose, onSubmit }: CreateTaskModalPr
 
   const onSubmitHandler = async (data: CreateTaskFormData) => {
     setIsSubmitting(true);
+    setError(null);
     try {
       await onSubmit(data);
       reset();
       onClose();
     } catch (error) {
       console.error('Error creating task:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create task');
     } finally {
       setIsSubmitting(false);
     }
@@ -206,6 +209,14 @@ export default function CreateTaskModal({ onClose, onSubmit }: CreateTaskModalPr
           </div>
           {errors.allowParentAutoComplete && (
             <p className="mt-1 text-sm text-danger-600">{errors.allowParentAutoComplete.message}</p>
+          )}
+
+          {/* Error Display */}
+          {error && (
+            <div className="flex items-center p-3 bg-danger-50 border border-danger-200 rounded-lg">
+              <AlertTriangle className="w-4 h-4 text-danger-600 mr-2" />
+              <p className="text-sm text-danger-700">{error}</p>
+            </div>
           )}
 
           {/* Form Actions */}

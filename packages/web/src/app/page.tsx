@@ -9,6 +9,7 @@ import { Task, TaskStatus, Priority } from '@/types';
 export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filters, setFilters] = useState({
     status: '',
@@ -23,19 +24,29 @@ export default function HomePage() {
   const fetchTasks = async () => {
     try {
       setLoading(true);
+      setError(null);
       const params = new URLSearchParams();
       if (filters.status) params.append('status', filters.status);
       if (filters.priority) params.append('priority', filters.priority);
       if (filters.q) params.append('q', filters.q);
 
       const response = await fetch(`/api/tasks?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch tasks: ${response.status} ${response.statusText}`);
+      }
+      
       const data = await response.json();
 
       if (data.data) {
         setTasks(data.data);
+      } else {
+        setTasks([]);
       }
     } catch (error) {
       console.error('Error fetching tasks:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch tasks');
+      setTasks([]);
     } finally {
       setLoading(false);
     }
@@ -51,12 +62,16 @@ export default function HomePage() {
         body: JSON.stringify(taskData),
       });
 
-      if (response.ok) {
-        setShowCreateModal(false);
-        fetchTasks();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `Failed to create task: ${response.status} ${response.statusText}`);
       }
+
+      setShowCreateModal(false);
+      fetchTasks();
     } catch (error) {
       console.error('Error creating task:', error);
+      throw error; // Re-throw to let the modal handle it
     }
   };
 
@@ -249,6 +264,27 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="card mb-6">
+            <div className="card-content">
+              <div className="flex items-center p-4 bg-danger-50 border border-danger-200 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-danger-600 mr-3" />
+                <div>
+                  <h3 className="text-sm font-medium text-danger-800">Connection Error</h3>
+                  <p className="text-sm text-danger-700 mt-1">{error}</p>
+                  <button
+                    onClick={fetchTasks}
+                    className="mt-2 text-sm text-danger-600 hover:text-danger-800 underline"
+                  >
+                    Try again
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Task List */}
         <TaskList

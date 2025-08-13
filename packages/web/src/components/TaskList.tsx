@@ -46,11 +46,15 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
         body: JSON.stringify({ status: newStatus }),
       });
 
-      if (response.ok) {
-        onTaskUpdate();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `Failed to update task: ${response.status} ${response.statusText}`);
       }
+
+      onTaskUpdate();
     } catch (error) {
       console.error('Error updating task status:', error);
+      alert(error instanceof Error ? error.message : 'Failed to update task status');
     }
   };
 
@@ -64,11 +68,15 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
         body: JSON.stringify({ mode: 'normal' }),
       });
 
-      if (response.ok) {
-        onTaskUpdate();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `Failed to complete task: ${response.status} ${response.statusText}`);
       }
+
+      onTaskUpdate();
     } catch (error) {
       console.error('Error completing task:', error);
+      alert(error instanceof Error ? error.message : 'Failed to complete task');
     }
   };
 
@@ -81,11 +89,15 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
         },
       });
 
-      if (response.ok) {
-        onTaskUpdate();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `Failed to reopen task: ${response.status} ${response.statusText}`);
       }
+
+      onTaskUpdate();
     } catch (error) {
       console.error('Error reopening task:', error);
+      alert(error instanceof Error ? error.message : 'Failed to reopen task');
     }
   };
 
