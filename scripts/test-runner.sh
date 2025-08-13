@@ -34,22 +34,18 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Function to run tests for a package
+# Function to run tests for a package using Docker
 run_package_tests() {
     local package=$1
     local test_type=$2
     
-    print_status "Running $test_type tests for $package..."
-    
-    cd "packages/$package"
+    print_status "Running $test_type tests for $package using Docker..."
     
     if [ "$test_type" = "coverage" ]; then
-        npm run test:coverage
+        docker-compose -f docker-compose.test.yml run --rm "${package}-test" npm run test:coverage
     else
-        npm run test
+        docker-compose -f docker-compose.test.yml run --rm "${package}-test" npm run test
     fi
-    
-    cd ../..
     
     if [ $? -eq 0 ]; then
         print_success "$package $test_type tests passed"
@@ -59,15 +55,13 @@ run_package_tests() {
     fi
 }
 
-# Function to run linting for a package
+# Function to run linting for a package using Docker
 run_package_lint() {
     local package=$1
     
-    print_status "Running linting for $package..."
+    print_status "Running linting for $package using Docker..."
     
-    cd "packages/$package"
-    npm run lint
-    cd ../..
+    docker-compose -f docker-compose.test.yml run --rm "${package}-test" npm run lint
     
     if [ $? -eq 0 ]; then
         print_success "$package linting passed"
@@ -77,15 +71,13 @@ run_package_lint() {
     fi
 }
 
-# Function to run type checking for a package
+# Function to run type checking for a package using Docker
 run_package_type_check() {
     local package=$1
     
-    print_status "Running type checking for $package..."
+    print_status "Running type checking for $package using Docker..."
     
-    cd "packages/$package"
-    npm run type-check
-    cd ../..
+    docker-compose -f docker-compose.test.yml run --rm "${package}-test" npm run type-check
     
     if [ $? -eq 0 ]; then
         print_success "$package type checking passed"
@@ -105,24 +97,19 @@ main() {
         exit 1
     fi
     
-    # Check if Node.js is installed
-    if ! command_exists node; then
-        print_error "Node.js is not installed"
+    # Check if Docker is installed
+    if ! command_exists docker; then
+        print_error "Docker is not installed"
         exit 1
     fi
     
-    # Check if npm is installed
-    if ! command_exists npm; then
-        print_error "npm is not installed"
+    # Check if docker-compose is installed
+    if ! command_exists docker-compose; then
+        print_error "docker-compose is not installed"
         exit 1
     fi
     
-    # Check if Docker is available (for database tests)
-    if command_exists docker; then
-        print_status "Docker found - will use for database tests"
-    else
-        print_warning "Docker not found - some tests may fail if database is not available"
-    fi
+    print_status "Docker found - will use for running all tests in containers"
     
     # Parse command line arguments
     TEST_TYPE="normal"
@@ -172,14 +159,18 @@ main() {
         esac
     done
     
-    # Start Docker services if available
-    if command_exists docker && [ -f "docker-compose.yml" ]; then
-        print_status "Starting Docker services..."
-        docker-compose up -d db
+    # Start test database
+    if [ -f "docker-compose.test.yml" ]; then
+        print_status "Starting test database..."
+        docker-compose -f docker-compose.test.yml up -d postgres-test
         
         # Wait for database to be ready
-        print_status "Waiting for database to be ready..."
+        print_status "Waiting for test database to be ready..."
         sleep 10
+        
+        # Run database migrations
+        print_status "Running database migrations..."
+        docker-compose -f docker-compose.test.yml run --rm api-test npx prisma migrate deploy
     fi
     
     # Run type checking
@@ -216,10 +207,10 @@ main() {
         done
     fi
     
-    # Stop Docker services if we started them
-    if command_exists docker && [ -f "docker-compose.yml" ]; then
-        print_status "Stopping Docker services..."
-        docker-compose down
+    # Stop test services
+    if [ -f "docker-compose.test.yml" ]; then
+        print_status "Stopping test services..."
+        docker-compose -f docker-compose.test.yml down
     fi
 }
 
