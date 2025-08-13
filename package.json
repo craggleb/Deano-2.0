@@ -16,6 +16,15 @@
     "test": "npm run test:api && npm run test:web",
     "test:api": "cd packages/api && npm run test",
     "test:web": "cd packages/web && npm run test",
+    "test:coverage": "npm run test:api:coverage && npm run test:web:coverage",
+    "test:api:coverage": "cd packages/api && npm run test:coverage",
+    "test:web:coverage": "cd packages/web && npm run test:coverage",
+    "test:watch": "concurrently \"npm run test:api:watch\" \"npm run test:web:watch\"",
+    "test:api:watch": "cd packages/api && npm run test -- --watch",
+    "test:web:watch": "cd packages/web && npm run test -- --watch",
+    "test:ui": "concurrently \"npm run test:api:ui\" \"npm run test:web:ui\"",
+    "test:api:ui": "cd packages/api && npm run test:ui",
+    "test:web:ui": "cd packages/web && npm run test:ui",
     "lint": "npm run lint:api && npm run lint:web",
     "lint:api": "cd packages/api && npm run lint",
     "lint:web": "cd packages/web && npm run lint",
@@ -26,7 +35,8 @@
     "setup": "npm install && npm run docker:up && npm run db:migrate && npm run db:seed",
     "db:migrate": "cd packages/api && npm run db:migrate",
     "db:seed": "cd packages/api && npm run db:seed",
-    "cli": "cd packages/api && npm run cli"
+    "cli": "cd packages/api && npm run cli",
+    "pre-commit": "npm run lint && npm run test"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

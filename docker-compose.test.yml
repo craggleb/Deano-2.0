@@ -1,0 +1,54 @@
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: deano-postgres-test
+    environment:
+      POSTGRES_DB: deano_task_manager_test
+      POSTGRES_USER: deano
+      POSTGRES_PASSWORD: deano_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deano -d deano_task_manager_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api-test:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile.test
+    container_name: deano-api-test
+    environment:
+      DATABASE_URL: postgresql://deano:deano_password@postgres-test:5432/deano_task_manager_test
+      NODE_ENV: test
+      PORT: 3001
+      JWT_SECRET: test-jwt-secret
+      BYPASS_AUTH: true
+    ports:
+      - "3002:3001"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    volumes:
+      - ./packages/api:/app/packages/api
+      - ./packages/api/coverage:/app/packages/api/coverage
+    command: ["npm", "run", "test:coverage"]
+
+  web-test:
+    build:
+      context: .
+      dockerfile: packages/web/Dockerfile.test
+    container_name: deano-web-test
+    environment:
+      NEXT_PUBLIC_API_URL: http://api-test:3001
+      NODE_ENV: test
+    volumes:
+      - ./packages/web:/app/packages/web
+      - ./packages/web/coverage:/app/packages/web/coverage
+    command: ["npm", "run", "test:coverage"]
+
+volumes:
+  postgres_test_data:

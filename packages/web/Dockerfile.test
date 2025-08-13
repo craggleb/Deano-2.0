@@ -1,0 +1,26 @@
+FROM node:20-alpine
+
+# Install dependencies for testing
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY packages/api/package*.json ./packages/api/
+COPY packages/web/package*.json ./packages/web/
+
+# Install all dependencies including dev dependencies
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Generate Prisma client (needed for web tests that might mock API)
+RUN npx prisma generate --schema=./packages/api/prisma/schema.prisma
+
+# Set working directory to web package
+WORKDIR /app/packages/web
+
+# Default command (can be overridden)
+CMD ["npm", "run", "test:coverage"]
