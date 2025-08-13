@@ -90,12 +90,7 @@ describe('LabelService', () => {
         },
       });
       
-      await prisma.taskLabel.create({
-        data: {
-          taskId: task.id,
-          labelId: label.id,
-        },
-      });
+      await labelService.assignLabelsToTask(task.id, [label.id]);
 
       const labels = await labelService.getLabels();
       const testLabel = labels.find(l => l.id === label.id);
@@ -142,12 +137,7 @@ describe('LabelService', () => {
         },
       });
       
-      await prisma.taskLabel.create({
-        data: {
-          taskId: task.id,
-          labelId: label.id,
-        },
-      });
+      await labelService.assignLabelsToTask(task.id, [label.id]);
 
       const foundLabel = await labelService.getLabelById(label.id);
 
@@ -253,15 +243,15 @@ describe('LabelService', () => {
       });
 
       const task = await prisma.task.create({
-        data: { title: 'Test Task' },
-      });
-
-      await prisma.taskLabel.create({
-        data: {
-          taskId: task.id,
-          labelId: label.id,
+        data: { 
+          title: 'Test Task',
+          status: 'Todo',
+          priority: 'Medium',
+          estimatedDurationMinutes: 30,
         },
       });
+
+      await labelService.assignLabelsToTask(task.id, [label.id]);
 
       await expect(
         labelService.deleteLabel(label.id)
@@ -331,12 +321,7 @@ describe('LabelService', () => {
         },
       });
 
-      await prisma.taskLabel.create({
-        data: {
-          taskId: task.id,
-          labelId: label.id,
-        },
-      });
+      await labelService.assignLabelsToTask(task.id, [label.id]);
 
       await labelService.assignLabelsToTask(task.id, []);
 
@@ -358,12 +343,8 @@ describe('LabelService', () => {
         },
       });
 
-      await prisma.taskLabel.createMany({
-        data: [
-          { taskId: task.id, labelId: label1.id },
-          { taskId: task.id, labelId: label2.id },
-        ],
-      });
+      // Use the service method instead of direct Prisma calls
+      await labelService.assignLabelsToTask(task.id, [label1.id, label2.id]);
 
       const taskLabels = await labelService.getTaskLabels(task.id);
 
@@ -402,12 +383,7 @@ describe('LabelService', () => {
         },
       });
 
-      await prisma.taskLabel.create({
-        data: {
-          taskId: task.id,
-          labelId: label.id,
-        },
-      });
+      await labelService.assignLabelsToTask(task.id, [label.id]);
 
       const taskLabels = await labelService.getTaskLabels(task.id);
 

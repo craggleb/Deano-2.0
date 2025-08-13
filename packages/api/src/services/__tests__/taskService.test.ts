@@ -63,19 +63,15 @@ describe('TaskService', () => {
 
   describe('task hierarchy', () => {
     it('should create parent and child tasks', async () => {
+      // Create parent first
       const parent = await taskService.createTask({
         title: 'Parent Task',
       });
 
-      // Create child task directly with parentId
-      const child = await prisma.task.create({
-        data: {
-          title: 'Child Task',
-          status: 'Todo',
-          priority: 'Medium',
-          estimatedDurationMinutes: 30,
-          parentId: parent.id,
-        },
+      // Create child task using the service with parentId
+      const child = await taskService.createTask({
+        title: 'Child Task',
+        parentId: parent.id,
       });
 
       expect(child.parentId).toBe(parent.id);
@@ -92,6 +88,7 @@ describe('TaskService', () => {
         allowParentAutoComplete: false,
       });
 
+      // Create child task using the service
       await taskService.createTask({
         title: 'Child Task',
         parentId: parent.id,
@@ -108,6 +105,7 @@ describe('TaskService', () => {
         allowParentAutoComplete: true,
       });
 
+      // Create child task using the service
       const child = await taskService.createTask({
         title: 'Child Task',
         parentId: parent.id,

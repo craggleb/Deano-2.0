@@ -179,32 +179,33 @@ describe('API Integration Tests', () => {
     });
 
     describe('PUT /api/tasks/:id', () => {
-      it('should update task', async () => {
-        const task = await prisma.task.create({
-          data: { 
-            title: 'Original Title',
-            status: 'Todo',
-            priority: 'Medium',
-            estimatedDurationMinutes: 30,
-          },
-        });
+          it('should update task', async () => {
+      // Create task via API
+      const createResponse = await request(app)
+        .post('/api/tasks')
+        .send({
+          title: 'Original Title',
+        })
+        .expect(201);
 
-        const response = await request(app)
-          .put(`/api/tasks/${task.id}`)
-          .send({
-            title: 'Updated Title',
-            description: 'Updated description',
-            priority: 'High',
-          })
-          .expect(200);
+      const task = createResponse.body.data;
 
-        expect(response.body.data).toMatchObject({
-          id: task.id,
+      const response = await request(app)
+        .put(`/api/tasks/${task.id}`)
+        .send({
           title: 'Updated Title',
           description: 'Updated description',
           priority: 'High',
-        });
+        })
+        .expect(200);
+
+      expect(response.body.data).toMatchObject({
+        id: task.id,
+        title: 'Updated Title',
+        description: 'Updated description',
+        priority: 'High',
       });
+    });
 
       it('should return 404 for non-existent task', async () => {
         await request(app)
@@ -550,29 +551,38 @@ describe('API Integration Tests', () => {
     });
 
     describe('POST /api/tasks/:id/labels', () => {
-      it('should assign labels to task', async () => {
-        const label1 = await prisma.label.create({ data: { name: 'Label 1' } });
-        const label2 = await prisma.label.create({ data: { name: 'Label 2' } });
-        const task = await prisma.task.create({
-          data: { 
-            title: 'Test Task',
-            status: 'Todo',
-            priority: 'Medium',
-            estimatedDurationMinutes: 30,
-          },
-        });
+          it('should assign labels to task', async () => {
+      // Create labels via API
+      const label1Response = await request(app)
+        .post('/api/labels')
+        .send({ name: 'Label 1' })
+        .expect(201);
+      const label1 = label1Response.body.data;
 
-        const response = await request(app)
-          .post(`/api/tasks/${task.id}/labels`)
-          .send({
-            labelIds: [label1.id, label2.id],
-          })
-          .expect(200);
+      const label2Response = await request(app)
+        .post('/api/labels')
+        .send({ name: 'Label 2' })
+        .expect(201);
+      const label2 = label2Response.body.data;
 
-        expect(response.body.data).toHaveLength(2);
-        expect(response.body.data.map((tl: any) => tl.label.name)).toContain('Label 1');
-        expect(response.body.data.map((tl: any) => tl.label.name)).toContain('Label 2');
-      });
+      // Create task via API
+      const taskResponse = await request(app)
+        .post('/api/tasks')
+        .send({ title: 'Test Task' })
+        .expect(201);
+      const task = taskResponse.body.data;
+
+      const response = await request(app)
+        .post(`/api/tasks/${task.id}/labels`)
+        .send({
+          labelIds: [label1.id, label2.id],
+        })
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(2);
+      expect(response.body.data.map((tl: any) => tl.label.name)).toContain('Label 1');
+      expect(response.body.data.map((tl: any) => tl.label.name)).toContain('Label 2');
+    });
 
       it('should return 404 for non-existent task', async () => {
         const label = await prisma.label.create({ data: { name: 'Test Label' } });
@@ -585,48 +595,49 @@ describe('API Integration Tests', () => {
     });
 
     describe('GET /api/tasks/:id/labels', () => {
-      it('should return labels for task', async () => {
-        const label = await prisma.label.create({ data: { name: 'Test Label' } });
-        const task = await prisma.task.create({
-          data: { 
-            title: 'Test Task',
-            status: 'Todo',
-            priority: 'Medium',
-            estimatedDurationMinutes: 30,
-          },
-        });
+          it('should return labels for task', async () => {
+      // Create label via API
+      const labelResponse = await request(app)
+        .post('/api/labels')
+        .send({ name: 'Test Label' })
+        .expect(201);
+      const label = labelResponse.body.data;
 
-        await prisma.taskLabel.create({
-          data: {
-            taskId: task.id,
-            labelId: label.id,
-          },
-        });
+      // Create task via API
+      const taskResponse = await request(app)
+        .post('/api/tasks')
+        .send({ title: 'Test Task' })
+        .expect(201);
+      const task = taskResponse.body.data;
 
-        const response = await request(app)
-          .get(`/api/tasks/${task.id}/labels`)
-          .expect(200);
+      // Assign label via API
+      await request(app)
+        .post(`/api/tasks/${task.id}/labels`)
+        .send({ labelIds: [label.id] })
+        .expect(200);
 
-        expect(response.body.data).toHaveLength(1);
-        expect(response.body.data[0].label.name).toBe('Test Label');
-      });
+      const response = await request(app)
+        .get(`/api/tasks/${task.id}/labels`)
+        .expect(200);
 
-      it('should return empty array for task with no labels', async () => {
-        const task = await prisma.task.create({
-          data: { 
-            title: 'Test Task',
-            status: 'Todo',
-            priority: 'Medium',
-            estimatedDurationMinutes: 30,
-          },
-        });
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].label.name).toBe('Test Label');
+    });
 
-        const response = await request(app)
-          .get(`/api/tasks/${task.id}/labels`)
-          .expect(200);
+          it('should return empty array for task with no labels', async () => {
+      // Create task via API
+      const taskResponse = await request(app)
+        .post('/api/tasks')
+        .send({ title: 'Test Task' })
+        .expect(201);
+      const task = taskResponse.body.data;
 
-        expect(response.body.data).toEqual([]);
-      });
+      const response = await request(app)
+        .get(`/api/tasks/${task.id}/labels`)
+        .expect(200);
+
+      expect(response.body.data).toEqual([]);
+    });
 
       it('should return 404 for invalid task id format', async () => {
         await request(app)
