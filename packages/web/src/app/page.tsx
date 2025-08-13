@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, Filter, Search, Calendar, Clock, AlertTriangle, CheckCircle, Circle, Eye, EyeOff, SortAsc, SortDesc } from 'lucide-react';
 import TaskList from '@/components/TaskList';
 import CreateTaskModal from '@/components/CreateTaskModal';
@@ -19,10 +19,26 @@ export default function HomePage() {
     priority: '',
     q: '',
   });
+  
+  // Add refs for scroll position preservation
+  const scrollPositionRef = useRef<number>(0);
+  const isUpdatingRef = useRef<boolean>(false);
 
   useEffect(() => {
     fetchTasks();
   }, [filters]);
+
+  // Effect to restore scroll position after state updates
+  useEffect(() => {
+    if (isUpdatingRef.current && scrollPositionRef.current > 0) {
+      const timer = setTimeout(() => {
+        window.scrollTo(0, scrollPositionRef.current);
+        isUpdatingRef.current = false;
+      }, 100); // Small delay to ensure DOM has updated
+      
+      return () => clearTimeout(timer);
+    }
+  }, [tasks, loading]); // Trigger when tasks or loading state changes
 
   const fetchTasks = async () => {
     try {
@@ -95,6 +111,13 @@ export default function HomePage() {
       throw error; // Re-throw to let the modal handle it
     }
   };
+
+  const handleTaskUpdate = useCallback(() => {
+    // Save current scroll position before updating
+    scrollPositionRef.current = window.scrollY;
+    isUpdatingRef.current = true;
+    fetchTasks();
+  }, []);
 
   const getStatusIcon = (status: TaskStatus) => {
     switch (status) {
@@ -416,7 +439,7 @@ export default function HomePage() {
         <TaskList
           tasks={sortedTasks}
           loading={loading}
-          onTaskUpdate={fetchTasks}
+          onTaskUpdate={handleTaskUpdate}
         />
       </div>
 
