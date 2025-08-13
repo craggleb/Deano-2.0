@@ -89,6 +89,27 @@ describe('API Integration Tests', () => {
           })
           .expect(500);
       });
+
+      it('should return 422 for invalid date format (validation error)', async () => {
+        const response = await request(app)
+          .post('/api/tasks')
+          .send({
+            title: 'Test Task with Invalid Date',
+            dueAt: 'invalid-date-format',
+          })
+          .expect(422);
+
+        expect(response.body.error.code).toBe('VALIDATION_ERROR');
+        expect(response.body.error.message).toBe('Validation failed');
+        expect(response.body.error.details).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              code: 'custom',
+              message: 'Invalid date format. Please enter a valid date and time.',
+            }),
+          ])
+        );
+      });
     });
 
     describe('GET /api/tasks', () => {
@@ -217,6 +238,38 @@ describe('API Integration Tests', () => {
           .put('/api/tasks/non-existent-id')
           .send({ title: 'Updated Title' })
           .expect(404);
+      });
+
+      it('should return 422 for invalid date format when updating task', async () => {
+        // Create a task first
+        const createResponse = await request(app)
+          .post('/api/tasks')
+          .send({
+            title: 'Test Task for Update',
+          })
+          .expect(201);
+
+        const task = createResponse.body.data;
+
+        // Try to update with invalid date
+        const response = await request(app)
+          .put(`/api/tasks/${task.id}`)
+          .send({
+            title: 'Updated Title',
+            dueAt: 'invalid-date-format',
+          })
+          .expect(422);
+
+        expect(response.body.error.code).toBe('VALIDATION_ERROR');
+        expect(response.body.error.message).toBe('Validation failed');
+        expect(response.body.error.details).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              code: 'custom',
+              message: 'Invalid date format. Please enter a valid date and time.',
+            }),
+          ])
+        );
       });
     });
 

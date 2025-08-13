@@ -14,7 +14,15 @@ const createTaskSchema = z.object({
   description: z.string().optional(),
   status: z.enum(['Todo', 'InProgress', 'Blocked', 'Completed', 'Canceled']).default('Todo'),
   priority: z.enum(['Low', 'Medium', 'High']).default('Medium'),
-  dueAt: z.string().optional(),
+  dueAt: z.string().optional().refine((val) => {
+    if (!val) return true; // Optional field
+    try {
+      const date = new Date(val);
+      return !isNaN(date.getTime());
+    } catch {
+      return false;
+    }
+  }, 'Please enter a valid date and time'),
   estimatedDurationMinutes: z.number().min(0).default(30),
   allowParentAutoComplete: z.boolean().default(false),
   parentId: z.string().optional(),
@@ -42,7 +50,7 @@ export default function CreateTaskModal({ onClose, onSubmit, parentTaskId }: Cre
   const getTomorrowDateTime = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(9, 0, 0, 0); // Set to 9 AM tomorrow
+    tomorrow.setHours(17, 0, 0, 0); // Set to 5 PM tomorrow
     return tomorrow.toISOString().slice(0, 16); // Format as YYYY-MM-DDTHH:MM
   };
 
@@ -203,11 +211,9 @@ export default function CreateTaskModal({ onClose, onSubmit, parentTaskId }: Cre
                 onChange={(value) => setValue('dueAt', value)}
                 id="dueAt"
                 className="w-full"
+                error={errors.dueAt?.message}
               />
               <p className="mt-1 text-xs text-gray-500">Select both date and time</p>
-              {errors.dueAt && (
-                <p className="mt-1 text-sm text-danger-600">{errors.dueAt.message}</p>
-              )}
             </div>
 
             <div>
