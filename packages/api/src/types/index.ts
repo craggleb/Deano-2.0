@@ -37,17 +37,44 @@ interface Dependency {
   createdAt: Date;
 }
 
+interface Label {
+  id: string;
+  name: string;
+  colour: string;
+  description?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface TaskLabel {
+  id: string;
+  taskId: string;
+  labelId: string;
+  createdAt: Date;
+}
+
 // Base types
 export type TaskWithRelations = Task & {
   children?: TaskWithRelations[];
   parent?: TaskWithRelations | null;
   dependencies?: DependencyWithTask[];
   blockingTasks?: DependencyWithTask[];
+  taskLabels?: TaskLabelWithLabel[];
 };
 
 export type DependencyWithTask = Dependency & {
   dependentTask: Task;
   blockerTask: Task;
+};
+
+export type TaskLabelWithLabel = TaskLabel & {
+  label: Label;
+};
+
+export type LabelWithTaskCount = Label & {
+  _count: {
+    taskLabels: number;
+  };
 };
 
 // Input types
@@ -60,6 +87,7 @@ export interface CreateTaskInput {
   estimatedDurationMinutes?: number;
   allowParentAutoComplete?: boolean;
   parentId?: string;
+  labelIds?: string[];
 }
 
 export interface UpdateTaskInput {
@@ -71,12 +99,26 @@ export interface UpdateTaskInput {
   estimatedDurationMinutes?: number;
   allowParentAutoComplete?: boolean;
   parentId?: string | null;
+  labelIds?: string[];
+}
+
+export interface CreateLabelInput {
+  name: string;
+  colour?: string;
+  description?: string;
+}
+
+export interface UpdateLabelInput {
+  name?: string;
+  colour?: string;
+  description?: string;
 }
 
 export interface TaskFilter {
   status?: TaskStatus;
   priority?: Priority;
   parentId?: string | null;
+  labelIds?: string[];
   q?: string;
   page?: number;
   limit?: number;

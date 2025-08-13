@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 
 import taskRoutes from './routes/taskRoutes';
 import scheduleRoutes from './routes/scheduleRoutes';
+import labelRoutes from './routes/labelRoutes';
 import { connectDatabase } from './lib/database';
 
 // Load environment variables
@@ -117,6 +118,7 @@ app.get('/api/docs.json', (_req, res) => {
 // API routes
 app.use('/api/tasks', taskRoutes);
 app.use('/api/schedule', scheduleRoutes);
+app.use('/api/labels', labelRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

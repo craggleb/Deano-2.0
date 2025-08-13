@@ -174,3 +174,24 @@ export function validateDate(date: string): Date {
     throw new Error('Invalid date format');
   }
 }
+
+// Middleware for validating request body
+export function validateRequest(schema: z.ZodSchema) {
+  return (req: any, res: any, next: any) => {
+    try {
+      const validatedData = schema.parse(req.body);
+      req.body = validatedData;
+      next();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: {
+            message: 'Validation failed',
+            details: error.errors,
+          },
+        });
+      }
+      next(error);
+    }
+  };
+}

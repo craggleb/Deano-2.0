@@ -33,11 +33,45 @@ model Task {
   dependencies     Dependency[] @relation("DependentTask")
   blockingTasks    Dependency[] @relation("BlockerTask")
 
+  // Labels
+  taskLabels TaskLabel[]
+
   @@map("tasks")
   @@index([status])
   @@index([dueAt])
   @@index([parentId])
   @@index([priority])
+}
+
+model Label {
+  id          String   @id @default(cuid())
+  name        String   @unique @db.VarChar(100)
+  colour      String   @default("#3B82F6") @db.VarChar(7) // hex colour code
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+
+  // Many-to-many relationship with tasks
+  taskLabels TaskLabel[]
+
+  @@map("labels")
+  @@index([name])
+}
+
+model TaskLabel {
+  id        String   @id @default(cuid())
+  taskId    String
+  labelId   String
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  // Relationships
+  task  Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, labelId])
+  @@map("task_labels")
+  @@index([taskId])
+  @@index([labelId])
 }
 
 model Dependency {

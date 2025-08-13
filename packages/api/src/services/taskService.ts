@@ -10,22 +10,31 @@ import {
   DependencyCycleError,
   ValidationError
 } from '../types';
+import { LabelService } from './labelService';
 
 import { addMinutes, addDays, startOfDay, isBefore, isAfter } from 'date-fns';
 
 export class TaskService {
+  private labelService: LabelService;
+
+  constructor() {
+    this.labelService = new LabelService(prisma);
+  }
+
   // Task CRUD operations
   async createTask(input: CreateTaskInput): Promise<TaskWithRelations> {
+    const { labelIds, ...taskData } = input;
+    
     const task = await prisma.task.create({
       data: {
-        title: input.title,
-        description: input.description,
-        status: input.status || 'Todo',
-        priority: input.priority || 'Medium',
-        dueAt: input.dueAt,
-        estimatedDurationMinutes: input.estimatedDurationMinutes || 30,
-        allowParentAutoComplete: input.allowParentAutoComplete || false,
-        parentId: input.parentId,
+        title: taskData.title,
+        description: taskData.description,
+        status: taskData.status || 'Todo',
+        priority: taskData.priority || 'Medium',
+        dueAt: taskData.dueAt,
+        estimatedDurationMinutes: taskData.estimatedDurationMinutes || 30,
+        allowParentAutoComplete: taskData.allowParentAutoComplete || false,
+        parentId: taskData.parentId,
       },
       include: {
         children: true,
@@ -40,8 +49,18 @@ export class TaskService {
             dependentTask: true,
           },
         },
+        taskLabels: {
+          include: {
+            label: true,
+          },
+        },
       },
     });
+
+    // Assign labels if provided
+    if (labelIds && labelIds.length > 0) {
+      await this.labelService.assignLabelsToTask(task.id, labelIds);
+    }
 
     return task as TaskWithRelations;
   }
@@ -77,9 +96,11 @@ export class TaskService {
       }
     }
 
+    const { labelIds, ...taskData } = input;
+
     const task = await prisma.task.update({
       where: { id },
-      data: input,
+      data: taskData,
       include: {
         children: true,
         parent: true,
@@ -93,8 +114,18 @@ export class TaskService {
             dependentTask: true,
           },
         },
+        taskLabels: {
+          include: {
+            label: true,
+          },
+        },
       },
     });
+
+    // Update labels if provided
+    if (labelIds !== undefined) {
+      await this.labelService.assignLabelsToTask(id, labelIds);
+    }
 
     return task as TaskWithRelations;
   }

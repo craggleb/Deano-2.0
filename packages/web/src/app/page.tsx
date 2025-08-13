@@ -228,13 +228,21 @@ export default function HomePage() {
               <h1 className="text-3xl font-bold text-gray-900">Deano Task Manager</h1>
               <p className="text-gray-600">Manage your tasks with dependency logic and smart scheduling</p>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="btn btn-primary"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              New Task
-            </button>
+            <div className="flex items-center space-x-4">
+              <a
+                href="/labels"
+                className="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                Labels
+              </a>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="btn btn-primary"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Task
+              </button>
+            </div>
           </div>
         </div>
       </header>
