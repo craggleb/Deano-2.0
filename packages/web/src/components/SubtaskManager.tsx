@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, ChevronRight, ChevronDown, Circle, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronRight, ChevronDown, Circle, Clock, AlertTriangle, CheckCircle, CheckSquare } from 'lucide-react';
 import { Task, TaskStatus, Priority } from '@/types';
 import CreateTaskModal from './CreateTaskModal';
 import EditTaskModal from './EditTaskModal';
@@ -114,6 +114,27 @@ export default function SubtaskManager({ parentTask, onTaskUpdate, isExpanded = 
     }
   };
 
+  const handleCompleteSubtask = async (subtaskId: string) => {
+    if (!confirm('Are you sure you want to mark this subtask as complete?')) return;
+
+    try {
+      const response = await fetch(`/api/tasks/${subtaskId}/complete`, {
+        method: 'PATCH',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `Failed to complete subtask: ${response.status} ${response.statusText}`);
+      }
+
+      fetchSubtasks();
+      onTaskUpdate();
+    } catch (error) {
+      console.error('Error completing subtask:', error);
+      alert(error instanceof Error ? error.message : 'Failed to complete subtask');
+    }
+  };
+
   const getStatusIcon = (status: TaskStatus) => {
     switch (status) {
       case 'Completed':
@@ -220,6 +241,17 @@ export default function SubtaskManager({ parentTask, onTaskUpdate, isExpanded = 
               </div>
 
               <div className="flex items-center space-x-1">
+                {/* Quick Complete Button for non-completed subtasks */}
+                {subtask.status !== 'Completed' && (
+                  <button
+                    onClick={() => handleCompleteSubtask(subtask.id)}
+                    className="btn btn-sm btn-success"
+                    title="Mark as complete"
+                  >
+                    <CheckSquare className="w-3 h-3" />
+                  </button>
+                )}
+                
                 <button
                   onClick={() => setEditingSubtask(subtask)}
                   className="btn btn-sm btn-secondary"
