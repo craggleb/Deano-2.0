@@ -1,6 +1,26 @@
 export type TaskStatus = 'Todo' | 'InProgress' | 'Blocked' | 'Completed' | 'Canceled';
 export type Priority = 'Low' | 'Medium' | 'High';
 
+export interface Label {
+  id: string;
+  name: string;
+  colour: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    taskLabels: number;
+  };
+}
+
+export interface TaskLabel {
+  id: string;
+  taskId: string;
+  labelId: string;
+  createdAt: string;
+  label: Label;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -19,6 +39,7 @@ export interface Task {
   parent?: Task | null;
   dependencies?: DependencyWithTask[];
   blockingTasks?: DependencyWithTask[];
+  taskLabels?: TaskLabel[];
 }
 
 export interface DependencyWithTask {
@@ -40,6 +61,7 @@ export interface CreateTaskInput {
   allowParentAutoComplete?: boolean;
   parentId?: string;
   dependencies?: string[];
+  labelIds?: string[];
 }
 
 export interface UpdateTaskInput {
@@ -51,12 +73,26 @@ export interface UpdateTaskInput {
   estimatedDurationMinutes?: number;
   allowParentAutoComplete?: boolean;
   parentId?: string | null;
+  labelIds?: string[];
+}
+
+export interface CreateLabelInput {
+  name: string;
+  colour?: string;
+  description?: string;
+}
+
+export interface UpdateLabelInput {
+  name?: string;
+  colour?: string;
+  description?: string;
 }
 
 export interface TaskFilter {
   status?: TaskStatus;
   priority?: Priority;
   parentId?: string | null;
+  labelIds?: string[];
   q?: string;
   page?: number;
   limit?: number;

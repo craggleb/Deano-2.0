@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { X, Clock, AlertTriangle } from 'lucide-react';
 import { Task, TaskStatus, Priority, UpdateTaskInput } from '@/types';
 import DateTimePicker from './DateTimePicker';
+import LabelManager from './LabelManager';
 
 const updateTaskSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(200, 'Title must be less than 200 characters'),
@@ -29,6 +30,9 @@ interface EditTaskModalProps {
 export default function EditTaskModal({ task, onClose, onSubmit }: EditTaskModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedLabels, setSelectedLabels] = useState<string[]>(
+    task.taskLabels?.map(tl => tl.labelId) || []
+  );
 
   const {
     register,
@@ -65,7 +69,11 @@ export default function EditTaskModal({ task, onClose, onSubmit }: EditTaskModal
     setIsSubmitting(true);
     setError(null);
     try {
-      await onSubmit(data);
+      const taskData = {
+        ...data,
+        labelIds: selectedLabels,
+      };
+      await onSubmit(taskData);
       onClose();
     } catch (error) {
       console.error('Error updating task:', error);
@@ -193,6 +201,19 @@ export default function EditTaskModal({ task, onClose, onSubmit }: EditTaskModal
                 <p className="mt-1 text-sm text-danger-600">{errors.estimatedDurationMinutes.message}</p>
               )}
             </div>
+          </div>
+
+          {/* Labels */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Labels
+            </label>
+            <LabelManager
+              selectedLabels={selectedLabels}
+              onLabelsChange={setSelectedLabels}
+              showCreateButton={false}
+              showHeader={false}
+            />
           </div>
 
           {/* Allow Parent Auto Complete */}

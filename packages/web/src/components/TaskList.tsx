@@ -21,6 +21,7 @@ import { formatLocalDateTime } from '@/lib/dateUtils';
 import EditTaskModal from './EditTaskModal';
 import SubtaskManager from './SubtaskManager';
 import DependencyManager from './DependencyManager';
+import TaskLabels from './TaskLabels';
 
 interface TaskListProps {
   tasks: Task[];
@@ -274,6 +275,9 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
                         {task.description}
                       </p>
                     )}
+
+                    {/* Task Labels */}
+                    <TaskLabels taskLabels={task.taskLabels} className="mb-2" />
 
                     <div className="flex items-center space-x-4 text-xs text-gray-500">
                       {task.dueAt && (

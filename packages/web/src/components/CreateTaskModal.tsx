@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { X, Clock, AlertTriangle } from 'lucide-react';
 import { TaskStatus, Priority, CreateTaskInput, Task } from '@/types';
 import DateTimePicker from './DateTimePicker';
+import LabelManager from './LabelManager';
 
 const createTaskSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(200, 'Title must be less than 200 characters'),
@@ -35,6 +36,7 @@ export default function CreateTaskModal({ onClose, onSubmit, parentTaskId }: Cre
   const [showParentSelector, setShowParentSelector] = useState(false);
   const [showDependencySelector, setShowDependencySelector] = useState(false);
   const [selectedDependencies, setSelectedDependencies] = useState<string[]>([]);
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
 
   // Get tomorrow's date in datetime-local format
   const getTomorrowDateTime = () => {
@@ -95,6 +97,7 @@ export default function CreateTaskModal({ onClose, onSubmit, parentTaskId }: Cre
       const taskData = {
         ...data,
         dependencies: selectedDependencies,
+        labelIds: selectedLabels,
       };
       await onSubmit(taskData);
       reset();
@@ -291,6 +294,18 @@ export default function CreateTaskModal({ onClose, onSubmit, parentTaskId }: Cre
                 Add Dependencies
               </button>
             </div>
+          </div>
+
+          {/* Labels */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Labels
+            </label>
+            <LabelManager
+              selectedLabels={selectedLabels}
+              onLabelsChange={setSelectedLabels}
+              showCreateButton={false}
+            />
           </div>
 
           {/* Allow Parent Auto Complete */}

@@ -5,6 +5,7 @@ A comprehensive full-stack task management application with strong dependency lo
 ## 🚀 Features
 
 - **Task Management**: Create, update, delete, and organize tasks with hierarchical subtasks
+- **Label System**: Categorise tasks with custom labels and colours for better organisation
 - **Dependency Logic**: Define task dependencies with cycle detection and validation
 - **Smart Scheduling**: Deterministic scheduling algorithm that respects dependencies and working hours
 - **Agent-Friendly API**: RESTful API designed for LLM/agent integration
@@ -65,8 +66,30 @@ interface Task {
   parentId?: string;                    // Parent task reference
   scheduledStart?: Date;                // Calculated start time
   scheduledEnd?: Date;                  // Calculated end time
+  taskLabels?: TaskLabel[];             // Associated labels
   createdAt: Date;                      // Creation timestamp
   updatedAt: Date;                      // Last update timestamp
+}
+```
+
+### Label Entity
+
+```typescript
+interface Label {
+  id: string;                           // Unique identifier
+  name: string;                         // Label name (unique)
+  colour: string;                       // Hex colour code
+  description?: string;                 // Optional description
+  createdAt: Date;                      // Creation timestamp
+  updatedAt: Date;                      // Last update timestamp
+}
+
+interface TaskLabel {
+  id: string;                           // Unique identifier
+  taskId: string;                       // Associated task
+  labelId: string;                      // Associated label
+  label: Label;                         // Label details
+  createdAt: Date;                      // Creation timestamp
 }
 ```
 
@@ -249,6 +272,13 @@ npm run cli complete clm123456 --force-parent-auto-complete
 - `GET /api/tasks/:id` - Get task details
 - `PATCH /api/tasks/:id` - Update task
 - `DELETE /api/tasks/:id` - Delete task
+
+#### Labels
+- `POST /api/labels` - Create label
+- `GET /api/labels` - List all labels
+- `GET /api/labels/:id` - Get label details
+- `PUT /api/labels/:id` - Update label
+- `DELETE /api/labels/:id` - Delete label
 
 #### Subtasks
 - `POST /api/tasks/:id/subtasks` - Add subtask
