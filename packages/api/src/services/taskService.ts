@@ -711,10 +711,9 @@ export class TaskService {
     const visited = new Set<string>();
     const recursionStack = new Set<string>();
 
-    const dfs = (node: string, path: string[]): string[] | null => {
+    const dfs = (node: string): string[] | null => {
       if (recursionStack.has(node)) {
-        const cycleStart = path.indexOf(node);
-        return path.slice(cycleStart);
+        return [node];
       }
       if (visited.has(node)) {
         return null;
@@ -722,13 +721,16 @@ export class TaskService {
 
       visited.add(node);
       recursionStack.add(node);
-      path.push(node);
 
       const neighbours = graph.get(node) || [];
       for (const neighbour of neighbours) {
-        const cycle = dfs(neighbour, [...path]);
+        const cycle = dfs(neighbour);
         if (cycle) {
-          return cycle;
+          if (cycle[0] === node) {
+            return cycle;
+          } else {
+            return [node, ...cycle];
+          }
         }
       }
 
@@ -738,7 +740,7 @@ export class TaskService {
 
     for (const node of graph.keys()) {
       if (!visited.has(node)) {
-        const cycle = dfs(node, []);
+        const cycle = dfs(node);
         if (cycle) {
           return cycle;
         }
