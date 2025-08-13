@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { TrendingUp, Clock, CheckCircle, AlertTriangle, Plus } from 'lucide-react';
+import { TrendingUp, Clock, CheckCircle, AlertTriangle, Plus, Copy, X } from 'lucide-react';
 import { Task, TaskStatus } from '@/types';
 
 interface TaskAnalytics {
@@ -30,6 +30,7 @@ export default function UtilitiesPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [daysToLookBack, setDaysToLookBack] = useState(1);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
 
   const fetchAnalytics = useCallback(async () => {
     try {
@@ -107,6 +108,106 @@ export default function UtilitiesPage() {
     });
   };
 
+  const generateSummaryText = () => {
+    if (!analytics) return '';
+
+    const formatDate = (dateString: string) => {
+      return new Date(dateString).toLocaleDateString('en-GB', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    };
+
+    const formatTime = (dateString: string) => {
+      return new Date(dateString).toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    };
+
+    let summary = `Task Analytics Summary\n`;
+    summary += `Date: ${formatDate(analytics.date)}\n`;
+    summary += `Period: ${daysToLookBack} day${daysToLookBack > 1 ? 's' : ''}\n`;
+    summary += `Generated: ${new Date().toLocaleString('en-GB')}\n\n`;
+
+    // Statistics
+    summary += `📊 STATISTICS\n`;
+    summary += `• Tasks Added: ${analytics.stats.totalAdded}\n`;
+    summary += `• Tasks Completed: ${analytics.stats.totalCompleted}\n`;
+    summary += `• Status Changes: ${analytics.stats.totalStatusChanges}\n`;
+    summary += `• Overdue Tasks: ${analytics.stats.totalOverdue}\n\n`;
+
+    // New Tasks
+    summary += `➕ NEW TASKS (${analytics.summary.added.length})\n`;
+    if (analytics.summary.added.length === 0) {
+      summary += `No new tasks were created during this period.\n\n`;
+    } else {
+      analytics.summary.added.forEach((task, index) => {
+        summary += `${index + 1}. ${task.title}\n`;
+        if (task.description) summary += `   Description: ${task.description}\n`;
+        summary += `   Status: ${task.status}\n`;
+        summary += `   Created: ${formatTime(task.createdAt)}\n`;
+        if (task.dueAt) summary += `   Due: ${formatDate(task.dueAt)}\n`;
+        summary += `\n`;
+      });
+    }
+
+    // Completed Tasks
+    summary += `✅ COMPLETED TASKS (${analytics.summary.completed.length})\n`;
+    if (analytics.summary.completed.length === 0) {
+      summary += `No tasks were completed during this period.\n\n`;
+    } else {
+      analytics.summary.completed.forEach((task, index) => {
+        summary += `${index + 1}. ${task.title}\n`;
+        if (task.description) summary += `   Description: ${task.description}\n`;
+        summary += `   Completed: ${formatTime(task.updatedAt)}\n`;
+        summary += `\n`;
+      });
+    }
+
+    // Status Changes
+    summary += `🔄 STATUS CHANGES (${analytics.summary.statusChanged.length})\n`;
+    if (analytics.summary.statusChanged.length === 0) {
+      summary += `No status changes occurred during this period.\n\n`;
+    } else {
+      analytics.summary.statusChanged.forEach((change, index) => {
+        summary += `${index + 1}. ${change.task.title}\n`;
+        if (change.task.description) summary += `   Description: ${change.task.description}\n`;
+        summary += `   Status Change: ${change.oldStatus} → ${change.newStatus}\n`;
+        summary += `   Updated: ${formatTime(change.task.updatedAt)}\n`;
+        summary += `\n`;
+      });
+    }
+
+    // Overdue Tasks
+    summary += `⚠️ OVERDUE TASKS (${analytics.summary.overdue.length})\n`;
+    if (analytics.summary.overdue.length === 0) {
+      summary += `No tasks are currently overdue.\n\n`;
+    } else {
+      analytics.summary.overdue.forEach((task, index) => {
+        summary += `${index + 1}. ${task.title}\n`;
+        if (task.description) summary += `   Description: ${task.description}\n`;
+        summary += `   Status: ${task.status}\n`;
+        summary += `   Due: ${task.dueAt ? formatDate(task.dueAt) : 'No due date'}\n`;
+        summary += `\n`;
+      });
+    }
+
+    return summary;
+  };
+
+  const copyToClipboard = async () => {
+    const summaryText = generateSummaryText();
+    try {
+      await navigator.clipboard.writeText(summaryText);
+      // You could add a toast notification here if you have a toast system
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -175,6 +276,15 @@ export default function UtilitiesPage() {
               >
                 {loading ? 'Loading...' : 'Refresh Analytics'}
               </button>
+              {analytics && (
+                <button
+                  onClick={() => setShowSummaryModal(true)}
+                  className="btn btn-secondary flex items-center gap-2"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copy Summary
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -398,6 +508,37 @@ export default function UtilitiesPage() {
           </>
         )}
       </div>
+
+      {/* Summary Modal */}
+      {showSummaryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Analytics Summary</h2>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={copyToClipboard}
+                  className="btn btn-primary flex items-center gap-2"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copy to Clipboard
+                </button>
+                <button
+                  onClick={() => setShowSummaryModal(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto p-6">
+              <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono bg-gray-50 p-4 rounded-lg border border-gray-200 overflow-auto max-h-[60vh]">
+                {generateSummaryText()}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
