@@ -11,13 +11,25 @@ export const createTaskSchema = z.object({
   description: z.string().optional(),
   status: taskStatusSchema.optional().default(TaskStatus.Todo),
   priority: prioritySchema.optional().default(Priority.Medium),
-  dueAt: z.string().optional().transform(val => {
+  dueAt: z.string().optional().transform((val, ctx) => {
     if (!val) return undefined;
     // Handle both ISO datetime strings and datetime-local input values
     try {
-      return new Date(val);
+      const date = new Date(val);
+      if (isNaN(date.getTime())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Invalid date format. Please enter a valid date and time.',
+        });
+        return z.NEVER;
+      }
+      return date;
     } catch {
-      throw new Error('Invalid date format');
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid date format. Please enter a valid date and time.',
+      });
+      return z.NEVER;
     }
   }),
   estimatedDurationMinutes: z.number().int().min(0).optional().default(30),
@@ -31,13 +43,25 @@ export const updateTaskSchema = z.object({
   description: z.string().optional(),
   status: taskStatusSchema.optional(),
   priority: prioritySchema.optional(),
-  dueAt: z.string().nullable().optional().transform(val => {
+  dueAt: z.string().nullable().optional().transform((val, ctx) => {
     if (!val) return null;
     // Handle both ISO datetime strings and datetime-local input values
     try {
-      return new Date(val);
+      const date = new Date(val);
+      if (isNaN(date.getTime())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Invalid date format. Please enter a valid date and time.',
+        });
+        return z.NEVER;
+      }
+      return date;
     } catch {
-      throw new Error('Invalid date format');
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid date format. Please enter a valid date and time.',
+      });
+      return z.NEVER;
     }
   }),
   estimatedDurationMinutes: z.number().int().min(0).optional(),
@@ -79,12 +103,24 @@ export const workingHoursSchema = z.object({
 export const scheduleOptionsSchema = z.object({
   filter: taskFilterSchema.partial().optional(),
   workingHours: workingHoursSchema.optional(),
-  startDate: z.string().optional().transform(val => {
+  startDate: z.string().optional().transform((val, ctx) => {
     if (!val) return undefined;
     try {
-      return new Date(val);
+      const date = new Date(val);
+      if (isNaN(date.getTime())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Invalid date format. Please enter a valid date.',
+        });
+        return z.NEVER;
+      }
+      return date;
     } catch {
-      throw new Error('Invalid date format');
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid date format. Please enter a valid date.',
+      });
+      return z.NEVER;
     }
   }),
   dailyCapacity: z.number().int().min(1).optional(),
@@ -97,12 +133,24 @@ export const bulkImportTaskSchema = z.object({
   description: z.string().optional(),
   status: taskStatusSchema.optional(),
   priority: prioritySchema.optional(),
-  dueAt: z.string().optional().transform(val => {
+  dueAt: z.string().optional().transform((val, ctx) => {
     if (!val) return undefined;
     try {
-      return new Date(val);
+      const date = new Date(val);
+      if (isNaN(date.getTime())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Invalid date format. Please enter a valid date and time.',
+        });
+        return z.NEVER;
+      }
+      return date;
     } catch {
-      throw new Error('Invalid date format');
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid date format. Please enter a valid date and time.',
+      });
+      return z.NEVER;
     }
   }),
   estimatedDurationMinutes: z.number().int().min(0).optional(),
@@ -171,9 +219,16 @@ export function validateId(id: string): string {
 
 export function validateDate(date: string): Date {
   try {
-    return new Date(date);
-  } catch {
-    throw new Error('Invalid date format');
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+      throw new Error('Invalid date format. Please enter a valid date and time.');
+    }
+    return parsedDate;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Invalid date format. Please enter a valid date and time.');
   }
 }
 

@@ -14,7 +14,15 @@ const updateTaskSchema = z.object({
   description: z.string().optional(),
   status: z.enum(['Todo', 'InProgress', 'Blocked', 'Completed', 'Canceled']),
   priority: z.enum(['Low', 'Medium', 'High']),
-  dueAt: z.string().optional(),
+  dueAt: z.string().optional().refine((val) => {
+    if (!val) return true; // Optional field
+    try {
+      const date = new Date(val);
+      return !isNaN(date.getTime());
+    } catch {
+      return false;
+    }
+  }, 'Please enter a valid date and time'),
   estimatedDurationMinutes: z.number().min(0),
   allowParentAutoComplete: z.boolean(),
 });
@@ -176,11 +184,9 @@ export default function EditTaskModal({ task, onClose, onSubmit, onDelete }: Edi
                 onChange={(value) => setValue('dueAt', value)}
                 id="dueAt"
                 className="w-full"
+                error={errors.dueAt?.message}
               />
               <p className="mt-1 text-xs text-gray-500">Select both date and time</p>
-              {errors.dueAt && (
-                <p className="mt-1 text-sm text-danger-600">{errors.dueAt.message}</p>
-              )}
             </div>
 
             <div>
