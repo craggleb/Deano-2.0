@@ -12,10 +12,13 @@ import {
   Trash2,
   Play,
   Pause,
-  RotateCcw
+  RotateCcw,
+  CheckSquare
 } from 'lucide-react';
 import { Task, TaskStatus, Priority } from '@/types';
-import { format, isAfter, isBefore } from 'date-fns';
+import { isAfter, isBefore } from 'date-fns';
+import { formatLocalDateTime } from '@/lib/dateUtils';
+import EditTaskModal from './EditTaskModal';
 
 interface TaskListProps {
   tasks: Task[];
@@ -25,6 +28,7 @@ interface TaskListProps {
 
 export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps) {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const toggleExpanded = (taskId: string) => {
     const newExpanded = new Set(expandedTasks);
@@ -98,6 +102,31 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
     } catch (error) {
       console.error('Error reopening task:', error);
       alert(error instanceof Error ? error.message : 'Failed to reopen task');
+    }
+  };
+
+  const handleEditTask = async (taskData: any) => {
+    if (!editingTask) return;
+    
+    try {
+      const response = await fetch(`/api/tasks/${editingTask.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(taskData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `Failed to update task: ${response.status} ${response.statusText}`);
+      }
+
+      setEditingTask(null);
+      onTaskUpdate();
+    } catch (error) {
+      console.error('Error updating task:', error);
+      throw error; // Re-throw to let the modal handle it
     }
   };
 
@@ -186,146 +215,172 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
   }
 
   return (
-    <div className="space-y-2">
-      {tasks.map((task) => (
-        <div key={task.id} className="card">
-          <div className="card-content">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start space-x-3 flex-1">
-                <div className="flex items-center space-x-2 mt-1">
-                  {getStatusIcon(task.status)}
-                  <span className={`badge ${getStatusColor(task.status)}`}>
-                    {task.status}
-                  </span>
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <h3 className="text-sm font-medium text-gray-900 truncate">
-                      {task.title}
-                    </h3>
-                    <span className={`badge ${getPriorityColor(task.priority)}`}>
-                      {task.priority}
+    <>
+      <div className="space-y-2">
+        {tasks.map((task) => (
+          <div key={task.id} className="card">
+            <div className="card-content">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start space-x-3 flex-1">
+                  <div className="flex items-center space-x-2 mt-1">
+                    {getStatusIcon(task.status)}
+                    <span className={`badge ${getStatusColor(task.status)}`}>
+                      {task.status}
                     </span>
-                    {isOverdue(task) && (
-                      <span className="badge badge-danger">Overdue</span>
-                    )}
-                    {isDueSoon(task) && (
-                      <span className="badge badge-warning">Due Soon</span>
-                    )}
                   </div>
 
-                  {task.description && (
-                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                      {task.description}
-                    </p>
-                  )}
-
-                  <div className="flex items-center space-x-4 text-xs text-gray-500">
-                    {task.dueAt && (
-                      <span>
-                        Due: {format(new Date(task.dueAt), 'MMM dd, yyyy')}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <h3 className="text-sm font-medium text-gray-900 truncate">
+                        {task.title}
+                      </h3>
+                      <span className={`badge ${getPriorityColor(task.priority)}`}>
+                        {task.priority}
                       </span>
-                    )}
-                    <span>{task.estimatedDurationMinutes}m</span>
-                    {task.children && task.children.length > 0 && (
-                      <span>{task.children.length} subtasks</span>
-                    )}
-                    {task.dependencies && task.dependencies.length > 0 && (
-                      <span>{task.dependencies.length} dependencies</span>
-                    )}
-                  </div>
-
-                  {/* Subtasks */}
-                  {task.children && task.children.length > 0 && (
-                    <div className="mt-3">
-                      <button
-                        onClick={() => toggleExpanded(task.id)}
-                        className="flex items-center text-xs text-gray-500 hover:text-gray-700"
-                      >
-                        <ChevronRight 
-                          className={`w-3 h-3 mr-1 transition-transform ${
-                            expandedTasks.has(task.id) ? 'rotate-90' : ''
-                          }`} 
-                        />
-                        {task.children.length} subtasks
-                      </button>
-
-                      {expandedTasks.has(task.id) && (
-                        <div className="mt-2 ml-4 space-y-1">
-                          {task.children.map((subtask) => (
-                            <div key={subtask.id} className="flex items-center space-x-2 text-xs">
-                              {getStatusIcon(subtask.status)}
-                              <span className="text-gray-700">{subtask.title}</span>
-                            </div>
-                          ))}
-                        </div>
+                      {isOverdue(task) && (
+                        <span className="badge badge-danger">Overdue</span>
+                      )}
+                      {isDueSoon(task) && (
+                        <span className="badge badge-warning">Due Soon</span>
                       )}
                     </div>
-                  )}
+
+                    {task.description && (
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                        {task.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center space-x-4 text-xs text-gray-500">
+                      {task.dueAt && (
+                        <span>
+                          Due: {formatLocalDateTime(task.dueAt)}
+                        </span>
+                      )}
+                      <span>{task.estimatedDurationMinutes}m</span>
+                      {task.children && task.children.length > 0 && (
+                        <span>{task.children.length} subtasks</span>
+                      )}
+                      {task.dependencies && task.dependencies.length > 0 && (
+                        <span>{task.dependencies.length} dependencies</span>
+                      )}
+                    </div>
+
+                    {/* Subtasks */}
+                    {task.children && task.children.length > 0 && (
+                      <div className="mt-3">
+                        <button
+                          onClick={() => toggleExpanded(task.id)}
+                          className="flex items-center text-xs text-gray-500 hover:text-gray-700"
+                        >
+                          <ChevronRight 
+                            className={`w-3 h-3 mr-1 transition-transform ${
+                              expandedTasks.has(task.id) ? 'rotate-90' : ''
+                            }`} 
+                          />
+                          {task.children.length} subtasks
+                        </button>
+
+                        {expandedTasks.has(task.id) && (
+                          <div className="mt-2 ml-4 space-y-1">
+                            {task.children.map((subtask) => (
+                              <div key={subtask.id} className="flex items-center space-x-2 text-xs">
+                                {getStatusIcon(subtask.status)}
+                                <span className="text-gray-700">{subtask.title}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center space-x-1">
-                {task.status === 'Todo' && (
-                  <button
-                    onClick={() => handleStatusChange(task.id, 'InProgress')}
-                    className="btn btn-sm btn-primary"
-                    title="Start task"
-                  >
-                    <Play className="w-3 h-3" />
-                  </button>
-                )}
-
-                {task.status === 'InProgress' && (
-                  <>
+                <div className="flex items-center space-x-1">
+                  {/* Immediate Complete Button for Todo tasks */}
+                  {task.status === 'Todo' && (
                     <button
                       onClick={() => handleCompleteTask(task.id)}
                       className="btn btn-sm btn-success"
-                      title="Complete task"
+                      title="Mark as complete"
                     >
-                      <CheckCircle className="w-3 h-3" />
+                      <CheckSquare className="w-3 h-3" />
                     </button>
+                  )}
+
+                  {/* Status Change Buttons */}
+                  {task.status === 'Todo' && (
                     <button
-                      onClick={() => handleStatusChange(task.id, 'Blocked')}
-                      className="btn btn-sm btn-warning"
-                      title="Mark as blocked"
+                      onClick={() => handleStatusChange(task.id, 'InProgress')}
+                      className="btn btn-sm btn-primary"
+                      title="Start task"
                     >
-                      <Pause className="w-3 h-3" />
+                      <Play className="w-3 h-3" />
                     </button>
-                  </>
-                )}
+                  )}
 
-                {task.status === 'Blocked' && (
-                  <button
-                    onClick={() => handleStatusChange(task.id, 'InProgress')}
-                    className="btn btn-sm btn-primary"
-                    title="Resume task"
-                  >
-                    <Play className="w-3 h-3" />
-                  </button>
-                )}
+                  {task.status === 'InProgress' && (
+                    <>
+                      <button
+                        onClick={() => handleCompleteTask(task.id)}
+                        className="btn btn-sm btn-success"
+                        title="Complete task"
+                      >
+                        <CheckCircle className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => handleStatusChange(task.id, 'Blocked')}
+                        className="btn btn-sm btn-warning"
+                        title="Mark as blocked"
+                      >
+                        <Pause className="w-3 h-3" />
+                      </button>
+                    </>
+                  )}
 
-                {task.status === 'Completed' && (
+                  {task.status === 'Blocked' && (
+                    <button
+                      onClick={() => handleStatusChange(task.id, 'InProgress')}
+                      className="btn btn-sm btn-primary"
+                      title="Resume task"
+                    >
+                      <Play className="w-3 h-3" />
+                    </button>
+                  )}
+
+                  {task.status === 'Completed' && (
+                    <button
+                      onClick={() => handleReopenTask(task.id)}
+                      className="btn btn-sm btn-secondary"
+                      title="Reopen task"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                    </button>
+                  )}
+
+                  {/* Edit Button */}
                   <button
-                    onClick={() => handleReopenTask(task.id)}
+                    onClick={() => setEditingTask(task)}
                     className="btn btn-sm btn-secondary"
-                    title="Reopen task"
+                    title="Edit task"
                   >
-                    <RotateCcw className="w-3 h-3" />
-                  </button>
-                )}
-
-                <div className="relative">
-                  <button className="btn btn-sm btn-secondary">
-                    <MoreHorizontal className="w-3 h-3" />
+                    <Edit className="w-3 h-3" />
                   </button>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      {/* Edit Task Modal */}
+      {editingTask && (
+        <EditTaskModal
+          task={editingTask}
+          onClose={() => setEditingTask(null)}
+          onSubmit={handleEditTask}
+        />
+      )}
+    </>
   );
 }

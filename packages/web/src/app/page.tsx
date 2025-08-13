@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Filter, Search, Calendar, Clock, AlertTriangle, CheckCircle, Circle } from 'lucide-react';
+import { Plus, Filter, Search, Calendar, Clock, AlertTriangle, CheckCircle, Circle, Eye, EyeOff, SortAsc, SortDesc } from 'lucide-react';
 import TaskList from '@/components/TaskList';
 import CreateTaskModal from '@/components/CreateTaskModal';
 import { Task, TaskStatus, Priority } from '@/types';
@@ -11,6 +11,9 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCompletedTasks, setShowCompletedTasks] = useState(true);
+  const [sortBy, setSortBy] = useState('dueAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filters, setFilters] = useState({
     status: '',
     priority: '',
@@ -118,6 +121,54 @@ export default function HomePage() {
     }
   };
 
+  // Filter tasks based on showCompletedTasks setting
+  const filteredTasks = tasks.filter(task => {
+    if (!showCompletedTasks && task.status === 'Completed') {
+      return false;
+    }
+    return true;
+  });
+
+  // Sort tasks
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    let aValue: any;
+    let bValue: any;
+
+    switch (sortBy) {
+      case 'dueAt':
+        aValue = a.dueAt ? new Date(a.dueAt).getTime() : 0;
+        bValue = b.dueAt ? new Date(b.dueAt).getTime() : 0;
+        break;
+      case 'priority':
+        const priorityOrder = { High: 3, Medium: 2, Low: 1 };
+        aValue = priorityOrder[a.priority as keyof typeof priorityOrder];
+        bValue = priorityOrder[b.priority as keyof typeof priorityOrder];
+        break;
+      case 'status':
+        const statusOrder = { Todo: 1, InProgress: 2, Blocked: 3, Completed: 4, Canceled: 5 };
+        aValue = statusOrder[a.status as keyof typeof statusOrder];
+        bValue = statusOrder[b.status as keyof typeof statusOrder];
+        break;
+      case 'title':
+        aValue = a.title.toLowerCase();
+        bValue = b.title.toLowerCase();
+        break;
+      case 'createdAt':
+        aValue = new Date(a.createdAt).getTime();
+        bValue = new Date(b.createdAt).getTime();
+        break;
+      default:
+        aValue = a.dueAt ? new Date(a.dueAt).getTime() : 0;
+        bValue = b.dueAt ? new Date(b.dueAt).getTime() : 0;
+    }
+
+    if (sortOrder === 'asc') {
+      return aValue > bValue ? 1 : -1;
+    } else {
+      return aValue < bValue ? 1 : -1;
+    }
+  });
+
   const stats = {
     total: tasks.length,
     todo: tasks.filter(t => t.status === 'Todo').length,
@@ -221,46 +272,103 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Filters and Controls */}
         <div className="card mb-6">
           <div className="card-content">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
+            <div className="space-y-6">
+              {/* Search Bar - Full Width */}
+              <div>
+                <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+                  Search Tasks
+                </label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
+                    id="search"
                     type="text"
-                    placeholder="Search tasks..."
-                    className="input pl-10"
+                    placeholder="Search tasks by title or description..."
+                    className="input pl-10 w-full"
                     value={filters.q}
                     onChange={(e) => setFilters({ ...filters, q: e.target.value })}
                   />
                 </div>
               </div>
 
-              <select
-                className="select"
-                value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-              >
-                <option value="">All Statuses</option>
-                <option value="Todo">Todo</option>
-                <option value="InProgress">In Progress</option>
-                <option value="Blocked">Blocked</option>
-                <option value="Completed">Completed</option>
-                <option value="Canceled">Canceled</option>
-              </select>
+              {/* Filters Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-2">
+                    Status Filter
+                  </label>
+                  <select
+                    id="status-filter"
+                    className="select w-full"
+                    value={filters.status}
+                    onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                  >
+                    <option value="">All Statuses</option>
+                    <option value="Todo">Todo</option>
+                    <option value="InProgress">In Progress</option>
+                    <option value="Blocked">Blocked</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Canceled">Canceled</option>
+                  </select>
+                </div>
 
-              <select
-                className="select"
-                value={filters.priority}
-                onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
-              >
-                <option value="">All Priorities</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
+                <div>
+                  <label htmlFor="priority-filter" className="block text-sm font-medium text-gray-700 mb-2">
+                    Priority Filter
+                  </label>
+                  <select
+                    id="priority-filter"
+                    className="select w-full"
+                    value={filters.priority}
+                    onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
+                  >
+                    <option value="">All Priorities</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Sort and View Controls Row */}
+              <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Sort by:</label>
+                    <select
+                      className="select text-sm min-w-[140px]"
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                    >
+                      <option value="dueAt">Due Date</option>
+                      <option value="priority">Priority</option>
+                      <option value="status">Status</option>
+                      <option value="title">Title</option>
+                      <option value="createdAt">Created Date</option>
+                    </select>
+                    <button
+                      onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                      className="btn btn-sm btn-secondary"
+                      title={`Sort ${sortOrder === 'asc' ? 'descending' : 'ascending'}`}
+                    >
+                      {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowCompletedTasks(!showCompletedTasks)}
+                    className={`btn btn-sm ${showCompletedTasks ? 'btn-primary' : 'btn-secondary'}`}
+                  >
+                    {showCompletedTasks ? <Eye className="w-4 h-4 mr-1" /> : <EyeOff className="w-4 h-4 mr-1" />}
+                    {showCompletedTasks ? 'Show All' : 'Hide Completed'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -288,7 +396,7 @@ export default function HomePage() {
 
         {/* Task List */}
         <TaskList
-          tasks={tasks}
+          tasks={sortedTasks}
           loading={loading}
           onTaskUpdate={fetchTasks}
         />

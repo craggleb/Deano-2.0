@@ -5,37 +5,30 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Clock, AlertTriangle } from 'lucide-react';
-import { TaskStatus, Priority, CreateTaskInput } from '@/types';
+import { Task, TaskStatus, Priority, UpdateTaskInput } from '@/types';
 import DateTimePicker from './DateTimePicker';
 
-const createTaskSchema = z.object({
+const updateTaskSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(200, 'Title must be less than 200 characters'),
   description: z.string().optional(),
-  status: z.enum(['Todo', 'InProgress', 'Blocked', 'Completed', 'Canceled']).default('Todo'),
-  priority: z.enum(['Low', 'Medium', 'High']).default('Medium'),
+  status: z.enum(['Todo', 'InProgress', 'Blocked', 'Completed', 'Canceled']),
+  priority: z.enum(['Low', 'Medium', 'High']),
   dueAt: z.string().optional(),
-  estimatedDurationMinutes: z.number().min(0).default(30),
-  allowParentAutoComplete: z.boolean().default(false),
+  estimatedDurationMinutes: z.number().min(0),
+  allowParentAutoComplete: z.boolean(),
 });
 
-type CreateTaskFormData = z.infer<typeof createTaskSchema>;
+type UpdateTaskFormData = z.infer<typeof updateTaskSchema>;
 
-interface CreateTaskModalProps {
+interface EditTaskModalProps {
+  task: Task;
   onClose: () => void;
-  onSubmit: (data: CreateTaskInput) => void;
+  onSubmit: (data: UpdateTaskInput) => void;
 }
 
-export default function CreateTaskModal({ onClose, onSubmit }: CreateTaskModalProps) {
+export default function EditTaskModal({ task, onClose, onSubmit }: EditTaskModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Get tomorrow's date in datetime-local format
-  const getTomorrowDateTime = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(9, 0, 0, 0); // Set to 9 AM tomorrow
-    return tomorrow.toISOString().slice(0, 16); // Format as YYYY-MM-DDTHH:MM
-  };
 
   const {
     register,
@@ -44,32 +37,39 @@ export default function CreateTaskModal({ onClose, onSubmit }: CreateTaskModalPr
     reset,
     setValue,
     watch,
-  } = useForm<CreateTaskFormData>({
-    resolver: zodResolver(createTaskSchema),
+  } = useForm<UpdateTaskFormData>({
+    resolver: zodResolver(updateTaskSchema),
     defaultValues: {
-      status: 'Todo',
-      priority: 'Medium',
-      estimatedDurationMinutes: 30,
-      allowParentAutoComplete: false,
-      dueAt: getTomorrowDateTime(),
+      title: task.title,
+      description: task.description || '',
+      status: task.status,
+      priority: task.priority,
+      estimatedDurationMinutes: task.estimatedDurationMinutes,
+      allowParentAutoComplete: task.allowParentAutoComplete,
+      dueAt: task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 16) : '',
     },
   });
 
-  // Set default date when component mounts
+  // Set form values when task changes
   useEffect(() => {
-    setValue('dueAt', getTomorrowDateTime());
-  }, [setValue]);
+    setValue('title', task.title);
+    setValue('description', task.description || '');
+    setValue('status', task.status);
+    setValue('priority', task.priority);
+    setValue('estimatedDurationMinutes', task.estimatedDurationMinutes);
+    setValue('allowParentAutoComplete', task.allowParentAutoComplete);
+    setValue('dueAt', task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 16) : '');
+  }, [task, setValue]);
 
-  const onSubmitHandler = async (data: CreateTaskFormData) => {
+  const onSubmitHandler = async (data: UpdateTaskFormData) => {
     setIsSubmitting(true);
     setError(null);
     try {
       await onSubmit(data);
-      reset();
       onClose();
     } catch (error) {
-      console.error('Error creating task:', error);
-      setError(error instanceof Error ? error.message : 'Failed to create task');
+      console.error('Error updating task:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update task');
     } finally {
       setIsSubmitting(false);
     }
@@ -79,7 +79,7 @@ export default function CreateTaskModal({ onClose, onSubmit }: CreateTaskModalPr
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Create New Task</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Edit Task</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -88,17 +88,17 @@ export default function CreateTaskModal({ onClose, onSubmit }: CreateTaskModalPr
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmitHandler)} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit(onSubmitHandler)} className="p-6 space-y-4">
           {/* Title */}
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
               Title *
             </label>
             <input
               {...register('title')}
               type="text"
               id="title"
-              className="input w-full"
+              className="input"
               placeholder="Enter task title"
             />
             {errors.title && (
@@ -108,14 +108,14 @@ export default function CreateTaskModal({ onClose, onSubmit }: CreateTaskModalPr
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
               Description
             </label>
             <textarea
               {...register('description')}
               id="description"
-              rows={4}
-              className="textarea w-full"
+              rows={3}
+              className="textarea"
               placeholder="Enter task description"
             />
             {errors.description && (
@@ -124,12 +124,12 @@ export default function CreateTaskModal({ onClose, onSubmit }: CreateTaskModalPr
           </div>
 
           {/* Status and Priority */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
                 Status
               </label>
-              <select {...register('status')} id="status" className="select w-full">
+              <select {...register('status')} id="status" className="select">
                 <option value="Todo">Todo</option>
                 <option value="InProgress">In Progress</option>
                 <option value="Blocked">Blocked</option>
@@ -142,10 +142,10 @@ export default function CreateTaskModal({ onClose, onSubmit }: CreateTaskModalPr
             </div>
 
             <div>
-              <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
                 Priority
               </label>
-              <select {...register('priority')} id="priority" className="select w-full">
+              <select {...register('priority')} id="priority" className="select">
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
                 <option value="High">High</option>
@@ -196,21 +196,16 @@ export default function CreateTaskModal({ onClose, onSubmit }: CreateTaskModalPr
           </div>
 
           {/* Allow Parent Auto Complete */}
-          <div className="flex items-start space-x-3 p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center space-x-2">
             <input
               {...register('allowParentAutoComplete')}
               type="checkbox"
               id="allowParentAutoComplete"
-              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded mt-0.5"
+              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
             />
-            <div>
-              <label htmlFor="allowParentAutoComplete" className="text-sm font-medium text-gray-700">
-                Allow parent auto-complete
-              </label>
-              <p className="text-xs text-gray-600 mt-1">
-                When enabled, completing this parent task will automatically complete all its child tasks
-              </p>
-            </div>
+            <label htmlFor="allowParentAutoComplete" className="text-sm text-gray-700">
+              Allow parent auto-complete (completing parent will auto-complete children)
+            </label>
           </div>
           {errors.allowParentAutoComplete && (
             <p className="mt-1 text-sm text-danger-600">{errors.allowParentAutoComplete.message}</p>
@@ -218,14 +213,14 @@ export default function CreateTaskModal({ onClose, onSubmit }: CreateTaskModalPr
 
           {/* Error Display */}
           {error && (
-            <div className="flex items-center p-4 bg-danger-50 border border-danger-200 rounded-lg">
-              <AlertTriangle className="w-4 h-4 text-danger-600 mr-3" />
+            <div className="flex items-center p-3 bg-danger-50 border border-danger-200 rounded-lg">
+              <AlertTriangle className="w-4 h-4 text-danger-600 mr-2" />
               <p className="text-sm text-danger-700">{error}</p>
             </div>
           )}
 
           {/* Form Actions */}
-          <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
             <button
               type="button"
               onClick={onClose}
@@ -239,7 +234,7 @@ export default function CreateTaskModal({ onClose, onSubmit }: CreateTaskModalPr
               className="btn btn-primary"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Creating...' : 'Create Task'}
+              {isSubmitting ? 'Updating...' : 'Update Task'}
             </button>
           </div>
         </form>
