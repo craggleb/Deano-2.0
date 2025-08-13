@@ -25,9 +25,10 @@ interface EditTaskModalProps {
   task: Task;
   onClose: () => void;
   onSubmit: (data: UpdateTaskInput) => void;
+  onDelete?: (taskId: string) => void;
 }
 
-export default function EditTaskModal({ task, onClose, onSubmit }: EditTaskModalProps) {
+export default function EditTaskModal({ task, onClose, onSubmit, onDelete }: EditTaskModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedLabels, setSelectedLabels] = useState<string[]>(
@@ -241,22 +242,40 @@ export default function EditTaskModal({ task, onClose, onSubmit }: EditTaskModal
           )}
 
           {/* Form Actions */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn btn-secondary"
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Updating...' : 'Update Task'}
-            </button>
+          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+            <div className="flex items-center space-x-3">
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+                      onDelete(task.id);
+                    }
+                  }}
+                  className="btn btn-danger"
+                  disabled={isSubmitting}
+                >
+                  Delete Task
+                </button>
+              )}
+            </div>
+            <div className="flex items-center space-x-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn btn-secondary"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Updating...' : 'Update Task'}
+              </button>
+            </div>
           </div>
         </form>
       </div>
