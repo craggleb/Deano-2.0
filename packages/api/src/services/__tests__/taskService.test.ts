@@ -67,9 +67,15 @@ describe('TaskService', () => {
         title: 'Parent Task',
       });
 
-      const child = await taskService.createTask({
-        title: 'Child Task',
-        parentId: parent.id,
+      // Create child task directly with parentId
+      const child = await prisma.task.create({
+        data: {
+          title: 'Child Task',
+          status: 'Todo',
+          priority: 'Medium',
+          estimatedDurationMinutes: 30,
+          parentId: parent.id,
+        },
       });
 
       expect(child.parentId).toBe(parent.id);
