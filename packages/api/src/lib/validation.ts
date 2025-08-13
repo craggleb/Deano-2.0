@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TaskStatus, Priority } from '@/types';
+import { TaskStatus, Priority } from '../types';
 
 // Base schemas
 export const taskStatusSchema = z.nativeEnum(TaskStatus);

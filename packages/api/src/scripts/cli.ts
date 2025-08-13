@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
-import { TaskService } from '@/services/taskService';
-import { connectDatabase, disconnectDatabase } from '@/lib/database';
+import { TaskService } from '../services/taskService';
+import { connectDatabase, disconnectDatabase } from '../lib/database';
 import { format } from 'date-fns';
 
 const taskService = new TaskService();

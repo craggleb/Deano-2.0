@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { TaskService } from '@/services/taskService';
-import { scheduleOptionsSchema } from '@/lib/validation';
-import { DependencyCycleError } from '@/types';
+import { TaskService } from '../services/taskService';
+import { scheduleOptionsSchema } from '../lib/validation';
+import { DependencyCycleError } from '../types';
 
 const router = Router();
 const taskService = new TaskService();

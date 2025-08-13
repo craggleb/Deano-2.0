@@ -7,9 +7,9 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import dotenv from 'dotenv';
 
-import taskRoutes from '@/routes/taskRoutes';
-import scheduleRoutes from '@/routes/scheduleRoutes';
-import { connectDatabase } from '@/lib/database';
+import taskRoutes from './routes/taskRoutes';
+import scheduleRoutes from './routes/scheduleRoutes';
+import { connectDatabase } from './lib/database';
 
 // Load environment variables
 dotenv.config();

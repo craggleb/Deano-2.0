@@ -1,15 +1,15 @@
-import { prisma } from '@/lib/database';
-import { 
-  CreateTaskInput, 
-  UpdateTaskInput, 
-  TaskFilter, 
+import { prisma } from '../lib/database';
+import {
+  CreateTaskInput,
+  UpdateTaskInput,
+  TaskFilter,
   TaskWithRelations,
   CompleteTaskOptions,
   BulkImportTask,
   BusinessRuleError,
   DependencyCycleError,
   ValidationError
-} from '@/types';
+} from '../types';
 
 import { addMinutes, addDays, startOfDay, isBefore, isAfter } from 'date-fns';
 

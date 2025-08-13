@@ -22,11 +22,7 @@
     "exactOptionalPropertyTypes": false,
     "noImplicitOverride": true,
     "allowUnusedLabels": false,
-    "allowUnreachableCode": false,
-    "baseUrl": "./src",
-    "paths": {
-      "@/*": ["*"]
-    }
+    "allowUnreachableCode": false
   },
   "include": [
     "src/**/*"

@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { TaskService } from '@/services/taskService';
-import { 
-  createTaskSchema, 
-  updateTaskSchema, 
+import { TaskService } from '../services/taskService';
+import {
+  createTaskSchema,
+  updateTaskSchema,
   taskQuerySchema,
   addDependencySchema,
   setDependenciesSchema,
@@ -12,8 +12,8 @@ import {
   exportQuerySchema,
   taskIdParamSchema,
   dependencyIdParamSchema
-} from '@/lib/validation';
-import { BusinessRuleError, ValidationError, DependencyCycleError } from '@/types';
+} from '../lib/validation';
+import { BusinessRuleError, ValidationError, DependencyCycleError } from '../types';
 
 const taskService = new TaskService();
 

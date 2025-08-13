@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/database';
-import { connectDatabase, disconnectDatabase } from '@/lib/database';
+import { prisma } from '../lib/database';
+import { connectDatabase, disconnectDatabase } from '../lib/database';
 import { addDays } from 'date-fns';
 
 async function seed() {

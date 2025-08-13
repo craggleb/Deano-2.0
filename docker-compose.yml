@@ -34,9 +34,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./packages/api:/app
-      - /app/node_modules
 
   web:
     build:
