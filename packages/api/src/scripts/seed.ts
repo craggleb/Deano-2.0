@@ -49,7 +49,7 @@ async function seed() {
       },
     });
 
-    const task4 = await prisma.task.create({
+    await prisma.task.create({
       data: {
         title: 'Create Frontend Components',
         description: 'Build React components for task management',
@@ -60,7 +60,7 @@ async function seed() {
       },
     });
 
-    const task5 = await prisma.task.create({
+    await prisma.task.create({
       data: {
         title: 'Write Documentation',
         description: 'Create comprehensive documentation',

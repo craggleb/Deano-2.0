@@ -9,7 +9,7 @@ import {
   completeTaskSchema,
   scheduleOptionsSchema,
   bulkImportSchema,
-  exportFormatSchema,
+  exportQuerySchema,
   taskIdParamSchema,
   dependencyIdParamSchema
 } from '@/lib/validation';
@@ -449,10 +449,10 @@ export class TaskController {
 
   async exportTasks(req: Request, res: Response) {
     try {
-      const { format } = exportFormatSchema.parse(req.query);
-      const data = await taskService.exportTasks(format);
+      const validatedData = exportQuerySchema.parse(req.query);
+      const data = await taskService.exportTasks(validatedData.format);
       
-      if (format === 'csv') {
+      if (validatedData.format === 'csv') {
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename="tasks.csv"');
       } else {

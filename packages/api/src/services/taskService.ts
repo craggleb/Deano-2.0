@@ -10,9 +10,8 @@ import {
   DependencyCycleError,
   ValidationError
 } from '@/types';
-import { TaskStatus, Priority } from '@prisma/client';
-import { zonedTimeToUtc, utcToZonedTime, format } from 'date-fns-tz';
-import { addMinutes, addDays, startOfDay, endOfDay, isBefore, isAfter, parseISO } from 'date-fns';
+
+import { addMinutes, addDays, startOfDay, isBefore, isAfter } from 'date-fns';
 
 export class TaskService {
   // Task CRUD operations
@@ -44,7 +43,7 @@ export class TaskService {
       },
     });
 
-    return task;
+    return task as TaskWithRelations;
   }
 
   async updateTask(id: string, input: UpdateTaskInput): Promise<TaskWithRelations> {
@@ -97,7 +96,7 @@ export class TaskService {
       },
     });
 
-    return task;
+    return task as TaskWithRelations;
   }
 
   async deleteTask(id: string): Promise<void> {
@@ -152,7 +151,7 @@ export class TaskService {
       throw new ValidationError('Task not found');
     }
 
-    return task;
+    return task as TaskWithRelations;
   }
 
   async listTasks(filter: TaskFilter = {}): Promise<{
@@ -212,7 +211,7 @@ export class TaskService {
     ]);
 
     return {
-      tasks,
+      tasks: tasks as TaskWithRelations[],
       total,
       page,
       limit,
@@ -388,7 +387,7 @@ export class TaskService {
       },
     });
 
-    return updatedTask;
+    return updatedTask as TaskWithRelations;
   }
 
   async reopenTask(id: string): Promise<TaskWithRelations> {
@@ -423,7 +422,7 @@ export class TaskService {
       },
     });
 
-    return updatedTask;
+    return updatedTask as TaskWithRelations;
   }
 
   // Scheduling logic
@@ -661,7 +660,7 @@ export class TaskService {
     const visited = new Set<string>();
     const recursionStack = new Set<string>();
 
-    const dfs = (currentId: string): boolean => {
+    const dfs = async (currentId: string): Promise<boolean> => {
       if (recursionStack.has(currentId)) {
         return true; // Cycle detected
       }
@@ -679,12 +678,13 @@ export class TaskService {
       }
 
       // Check parent chain
-      const task = prisma.task.findUnique({
+      const taskResult = await prisma.task.findUnique({
         where: { id: currentId },
         select: { parentId: true },
-      }).then(t => t?.parentId);
+      });
+      const currentParentId = taskResult?.parentId;
 
-      if (task && dfs(task)) {
+      if (currentParentId && await dfs(currentParentId)) {
         recursionStack.delete(currentId);
         return true;
       }
@@ -693,7 +693,7 @@ export class TaskService {
       return false;
     };
 
-    return dfs(taskId);
+    return await dfs(taskId);
   }
 
   private buildDependencyGraph(tasks: TaskWithRelations[]): Map<string, string[]> {

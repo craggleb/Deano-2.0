@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TaskStatus, Priority } from '@prisma/client';
+import { TaskStatus, Priority } from '@/types';
 
 // Base schemas
 export const taskStatusSchema = z.nativeEnum(TaskStatus);
@@ -9,9 +9,17 @@ export const prioritySchema = z.nativeEnum(Priority);
 export const createTaskSchema = z.object({
   title: z.string().min(3).max(200),
   description: z.string().optional(),
-  status: taskStatusSchema.optional().default('Todo'),
-  priority: prioritySchema.optional().default('Medium'),
-  dueAt: z.string().datetime().optional().transform(val => val ? new Date(val) : undefined),
+  status: taskStatusSchema.optional().default(TaskStatus.Todo),
+  priority: prioritySchema.optional().default(Priority.Medium),
+  dueAt: z.string().optional().transform(val => {
+    if (!val) return undefined;
+    // Handle both ISO datetime strings and datetime-local input values
+    try {
+      return new Date(val);
+    } catch {
+      throw new Error('Invalid date format');
+    }
+  }),
   estimatedDurationMinutes: z.number().int().min(0).optional().default(30),
   allowParentAutoComplete: z.boolean().optional().default(false),
   parentId: z.string().cuid().optional(),
@@ -22,7 +30,15 @@ export const updateTaskSchema = z.object({
   description: z.string().optional(),
   status: taskStatusSchema.optional(),
   priority: prioritySchema.optional(),
-  dueAt: z.string().datetime().nullable().optional().transform(val => val ? new Date(val) : null),
+  dueAt: z.string().nullable().optional().transform(val => {
+    if (!val) return null;
+    // Handle both ISO datetime strings and datetime-local input values
+    try {
+      return new Date(val);
+    } catch {
+      throw new Error('Invalid date format');
+    }
+  }),
   estimatedDurationMinutes: z.number().int().min(0).optional(),
   allowParentAutoComplete: z.boolean().optional(),
   parentId: z.string().cuid().nullable().optional(),
@@ -61,7 +77,14 @@ export const workingHoursSchema = z.object({
 export const scheduleOptionsSchema = z.object({
   filter: taskFilterSchema.partial().optional(),
   workingHours: workingHoursSchema.optional(),
-  startDate: z.string().datetime().optional().transform(val => val ? new Date(val) : undefined),
+  startDate: z.string().optional().transform(val => {
+    if (!val) return undefined;
+    try {
+      return new Date(val);
+    } catch {
+      throw new Error('Invalid date format');
+    }
+  }),
   dailyCapacity: z.number().int().min(1).optional(),
   commit: z.boolean().optional().default(false),
 });
@@ -72,7 +95,14 @@ export const bulkImportTaskSchema = z.object({
   description: z.string().optional(),
   status: taskStatusSchema.optional(),
   priority: prioritySchema.optional(),
-  dueAt: z.string().datetime().optional(),
+  dueAt: z.string().optional().transform(val => {
+    if (!val) return undefined;
+    try {
+      return new Date(val);
+    } catch {
+      throw new Error('Invalid date format');
+    }
+  }),
   estimatedDurationMinutes: z.number().int().min(0).optional(),
   allowParentAutoComplete: z.boolean().optional(),
   parentId: z.string().cuid().optional(),
@@ -104,8 +134,14 @@ export const taskQuerySchema = z.object({
   priority: prioritySchema.optional(),
   parentId: z.string().cuid().nullable().optional(),
   q: z.string().optional(),
-  page: z.string().transform(val => parseInt(val, 10)).pipe(z.number().int().min(1)).optional().default(1),
-  limit: z.string().transform(val => parseInt(val, 10)).pipe(z.number().int().min(1).max(100)).optional().default(20),
+  page: z.union([
+    z.string().transform(val => parseInt(val, 10)),
+    z.number()
+  ]).pipe(z.number().int().min(1)).optional().default(1),
+  limit: z.union([
+    z.string().transform(val => parseInt(val, 10)),
+    z.number()
+  ]).pipe(z.number().int().min(1).max(100)).optional().default(20),
 });
 
 export const exportQuerySchema = z.object({
@@ -132,9 +168,9 @@ export function validateId(id: string): string {
 }
 
 export function validateDate(date: string): Date {
-  const result = z.string().datetime().safeParse(date);
-  if (!result.success) {
+  try {
+    return new Date(date);
+  } catch {
     throw new Error('Invalid date format');
   }
-  return new Date(result.data);
 }

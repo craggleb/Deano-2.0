@@ -94,7 +94,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(compression());
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -109,7 +109,7 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customSiteTitle: 'Deano Task Manager API Documentation',
 }));
 
-app.get('/api/docs.json', (req, res) => {
+app.get('/api/docs.json', (_req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
 });
@@ -129,7 +129,7 @@ app.use('*', (req, res) => {
 });
 
 // Global error handler
-app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((error: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Unhandled error:', error);
 
   // Handle Zod validation errors
@@ -163,7 +163,7 @@ app.use((error: any, req: express.Request, res: express.Response, next: express.
   }
 
   // Default error response
-  res.status(500).json({
+  return res.status(500).json({
     error: {
       code: 'INTERNAL_ERROR',
       message: process.env.NODE_ENV === 'production' 

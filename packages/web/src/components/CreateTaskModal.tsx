@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,11 +27,20 @@ interface CreateTaskModalProps {
 export default function CreateTaskModal({ onClose, onSubmit }: CreateTaskModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Get tomorrow's date in datetime-local format
+  const getTomorrowDateTime = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0); // Set to 9 AM tomorrow
+    return tomorrow.toISOString().slice(0, 16); // Format as YYYY-MM-DDTHH:MM
+  };
+
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
   } = useForm<CreateTaskFormData>({
     resolver: zodResolver(createTaskSchema),
     defaultValues: {
@@ -39,8 +48,14 @@ export default function CreateTaskModal({ onClose, onSubmit }: CreateTaskModalPr
       priority: 'Medium',
       estimatedDurationMinutes: 30,
       allowParentAutoComplete: false,
+      dueAt: getTomorrowDateTime(),
     },
   });
+
+  // Set default date when component mounts
+  useEffect(() => {
+    setValue('dueAt', getTomorrowDateTime());
+  }, [setValue]);
 
   const onSubmitHandler = async (data: CreateTaskFormData) => {
     setIsSubmitting(true);

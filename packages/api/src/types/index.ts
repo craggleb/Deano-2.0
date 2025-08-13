@@ -1,4 +1,41 @@
-import { Task, Dependency, TaskStatus, Priority } from '@prisma/client';
+// Define enums locally to match Prisma schema
+export enum TaskStatus {
+  Todo = 'Todo',
+  InProgress = 'InProgress',
+  Blocked = 'Blocked',
+  Completed = 'Completed',
+  Canceled = 'Canceled'
+}
+
+export enum Priority {
+  Low = 'Low',
+  Medium = 'Medium',
+  High = 'High'
+}
+
+// Define basic types that would normally come from Prisma
+interface Task {
+  id: string;
+  title: string;
+  description?: string | null;
+  status: TaskStatus;
+  priority: Priority;
+  dueAt?: Date | null;
+  estimatedDurationMinutes: number;
+  allowParentAutoComplete: boolean;
+  parentId?: string | null;
+  scheduledStart?: Date | null;
+  scheduledEnd?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface Dependency {
+  id: string;
+  taskId: string;
+  dependsOnTaskId: string;
+  createdAt: Date;
+}
 
 // Base types
 export type TaskWithRelations = Task & {
@@ -27,7 +64,7 @@ export interface CreateTaskInput {
 
 export interface UpdateTaskInput {
   title?: string;
-  description?: string;
+  description?: string | null;
   status?: TaskStatus;
   priority?: Priority;
   dueAt?: Date | null;
@@ -88,7 +125,7 @@ export interface BulkImportTask {
   description?: string;
   status?: TaskStatus;
   priority?: Priority;
-  dueAt?: string;
+  dueAt?: Date;
   estimatedDurationMinutes?: number;
   allowParentAutoComplete?: boolean;
   parentId?: string;
