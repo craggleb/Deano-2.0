@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Clock, AlertTriangle } from 'lucide-react';
-import { TaskStatus, Priority, CreateTaskInput, Task, RecurrencePattern } from '@/types';
+import { CreateTaskInput, Task, RecurrencePattern } from '@/types';
 import DateTimePicker from './DateTimePicker';
 import LabelManager from './LabelManager';
 import RecurrencePatternSelector from './RecurrencePatternSelector';
@@ -312,10 +312,6 @@ export default function CreateTaskModal({ onClose, onSubmit, parentTaskId }: Cre
               Parent Task
             </label>
             <div className="space-y-2">
-              {/* Debug info - remove after testing */}
-              <div className="text-xs text-gray-500 mb-2">
-                Debug: Form parentId = "{watch('parentId')}", Prop parentTaskId = "{parentTaskId}"
-              </div>
               {watch('parentId') ? (
                 <div className="flex items-center justify-between p-3 bg-primary-50 border border-primary-200 rounded-lg">
                   <div>
@@ -421,6 +417,8 @@ export default function CreateTaskModal({ onClose, onSubmit, parentTaskId }: Cre
               selectedLabels={selectedLabels}
               onLabelsChange={setSelectedLabels}
               showCreateButton={false}
+              showHeader={false}
+              showEditButtons={false}
             />
           </div>
 
