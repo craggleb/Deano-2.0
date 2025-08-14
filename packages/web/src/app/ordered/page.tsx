@@ -38,7 +38,7 @@ export default function OrderedTaskPage() {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/tasks?limit=100');
+      const response = await fetch('/api/tasks?limit=200');
       
       if (!response.ok) {
         throw new Error(`Failed to fetch tasks: ${response.status} ${response.statusText}`);

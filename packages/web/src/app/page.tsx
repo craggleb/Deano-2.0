@@ -21,6 +21,9 @@ export default function HomePage() {
     priority: '',
     q: '',
     labelIds: [] as string[],
+    dateRange: '' as '' | 'today' | 'overdue' | 'thisWeek' | 'thisMonth' | 'custom',
+    startDate: '',
+    endDate: '',
   });
   
   // Pagination state
@@ -45,11 +48,14 @@ export default function HomePage() {
       
       const params = new URLSearchParams();
       params.append('page', page.toString());
-      params.append('limit', '20'); // Default page size
+      params.append('limit', '200'); // Increased page size
       if (filters.status) params.append('status', filters.status);
       if (filters.priority) params.append('priority', filters.priority);
       if (filters.q) params.append('q', filters.q);
       if (filters.labelIds.length > 0) params.append('labelIds', filters.labelIds.join(','));
+      if (filters.dateRange) params.append('dateRange', filters.dateRange);
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
 
       const response = await fetch(`/api/tasks?${params.toString()}`);
       
@@ -88,7 +94,7 @@ export default function HomePage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []); // Remove filters dependency to prevent unnecessary re-renders
+  }, [filters]); // Include filters dependency to ensure function uses current filter state
 
   // Initial load effect - only run once on mount
   useEffect(() => {
@@ -99,7 +105,7 @@ export default function HomePage() {
   useEffect(() => {
     // Reset to page 1 when filters change
     fetchTasks(1, false);
-  }, [filters]); // Only depend on filters, not fetchTasks
+  }, [fetchTasks]); // Depend on fetchTasks which now includes filters
 
   const loadMore = useCallback(() => {
     if (hasMore && !loadingMore) {
@@ -408,7 +414,7 @@ export default function HomePage() {
               </div>
 
               {/* Filters Row */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-2">
                     Status Filter
@@ -446,6 +452,34 @@ export default function HomePage() {
                 </div>
 
                 <div>
+                  <label htmlFor="date-range-filter" className="block text-sm font-medium text-gray-700 mb-2">
+                    Date Range
+                  </label>
+                  <select
+                    id="date-range-filter"
+                    className="select w-full"
+                    value={filters.dateRange}
+                    onChange={(e) => {
+                      const dateRange = e.target.value as '' | 'today' | 'overdue' | 'thisWeek' | 'thisMonth' | 'custom';
+                      setFilters({ 
+                        ...filters, 
+                        dateRange,
+                        // Clear custom dates when selecting predefined ranges
+                        startDate: dateRange === 'custom' ? filters.startDate : '',
+                        endDate: dateRange === 'custom' ? filters.endDate : '',
+                      });
+                    }}
+                  >
+                    <option value="">All Dates</option>
+                    <option value="today">Today</option>
+                    <option value="overdue">Overdue</option>
+                    <option value="thisWeek">This Week</option>
+                    <option value="thisMonth">This Month</option>
+                    <option value="custom">Custom Range</option>
+                  </select>
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Label Filter
                   </label>
@@ -456,6 +490,36 @@ export default function HomePage() {
                   />
                 </div>
               </div>
+
+              {/* Custom Date Range Row */}
+              {filters.dateRange === 'custom' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="start-date" className="block text-sm font-medium text-gray-700 mb-2">
+                      Start Date
+                    </label>
+                    <input
+                      id="start-date"
+                      type="date"
+                      className="input w-full"
+                      value={filters.startDate}
+                      onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="end-date" className="block text-sm font-medium text-gray-700 mb-2">
+                      End Date
+                    </label>
+                    <input
+                      id="end-date"
+                      type="date"
+                      className="input w-full"
+                      value={filters.endDate}
+                      onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Sort and View Controls Row */}
               <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">

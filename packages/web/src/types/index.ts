@@ -120,6 +120,9 @@ export interface TaskFilter {
   q?: string;
   page?: number;
   limit?: number;
+  dateRange?: 'today' | 'overdue' | 'thisWeek' | 'thisMonth' | 'custom';
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface WorkingHours {
