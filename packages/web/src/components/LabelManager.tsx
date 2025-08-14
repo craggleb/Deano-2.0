@@ -31,11 +31,14 @@ export default function LabelManager({
     try {
       const response = await fetch('/api/labels');
       const result = await response.json();
-      if (result.data) {
+      if (result.data && Array.isArray(result.data)) {
         setLabels(result.data);
+      } else {
+        setLabels([]);
       }
     } catch (error) {
       console.error('Failed to fetch labels:', error);
+      setLabels([]);
     } finally {
       setIsLoading(false);
     }
@@ -143,7 +146,7 @@ export default function LabelManager({
       )}
 
       <div className="space-y-2">
-        {labels.map(label => (
+        {(labels || []).map(label => (
           <div key={label.id} className="flex items-center justify-between p-2 border rounded-md">
             <div className="flex items-center space-x-2">
               <div

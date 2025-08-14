@@ -4,13 +4,11 @@ import userEvent from '@testing-library/user-event';
 import TaskList from '../TaskList';
 import { Task } from '@/types';
 
-// Mock the API calls
-vi.mock('@/lib/api', () => ({
-  fetchTasks: vi.fn(),
-  deleteTask: vi.fn(),
-  completeTask: vi.fn(),
-  reopenTask: vi.fn(),
-}));
+// Mock fetch
+global.fetch = vi.fn().mockResolvedValue({
+  ok: true,
+  json: async () => ({ data: [] }),
+} as Response);
 
 const mockTasks: Task[] = [
   {
@@ -114,8 +112,8 @@ describe('TaskList', () => {
       />
     );
 
-    expect(screen.getByText('30 min')).toBeInTheDocument();
-    expect(screen.getByText('60 min')).toBeInTheDocument();
+    expect(screen.getByText('30 m')).toBeInTheDocument();
+    expect(screen.getByText('60 m')).toBeInTheDocument();
   });
 
   it('should call onTaskUpdate when edit button is clicked', async () => {

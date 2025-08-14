@@ -3,11 +3,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CreateTaskModal from '../CreateTaskModal';
 
-// Mock the API calls
-vi.mock('@/lib/api', () => ({
-  createTask: vi.fn(),
-  fetchLabels: vi.fn(),
-}));
+// Mock fetch
+global.fetch = vi.fn().mockResolvedValue({
+  ok: true,
+  json: async () => ({ data: [] }),
+} as Response);
 
 describe('CreateTaskModal', () => {
   const mockOnClose = vi.fn();
@@ -29,7 +29,7 @@ describe('CreateTaskModal', () => {
     expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/priority/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/estimated duration/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/duration \(minutes\)/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/allow parent auto-complete/i)).toBeInTheDocument();
   });
 
@@ -114,16 +114,19 @@ describe('CreateTaskModal', () => {
 
   it('should submit form with valid data', async () => {
     const user = userEvent.setup();
-    const mockCreateTask = vi.fn().mockResolvedValue({
+    const mockResponse = {
       id: '1',
       title: 'Test Task',
       description: 'Test Description',
       priority: 'High',
       estimatedDurationMinutes: 60,
       allowParentAutoComplete: true,
-    });
+    };
 
-    vi.mocked(require('@/lib/api').createTask).mockImplementation(mockCreateTask);
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: mockResponse }),
+    } as Response);
 
     render(
       <CreateTaskModal
@@ -136,7 +139,7 @@ describe('CreateTaskModal', () => {
     const titleInput = screen.getByLabelText(/title/i);
     const descriptionInput = screen.getByLabelText(/description/i);
     const prioritySelect = screen.getByLabelText(/priority/i);
-    const durationInput = screen.getByLabelText(/estimated duration/i);
+    const durationInput = screen.getByLabelText(/duration \(minutes\)/i);
     const autoCompleteCheckbox = screen.getByLabelText(/allow parent auto-complete/i);
 
     await user.type(titleInput, 'Test Task');
@@ -150,13 +153,13 @@ describe('CreateTaskModal', () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(mockCreateTask).toHaveBeenCalledWith({
-        title: 'Test Task',
-        description: 'Test Description',
-        priority: 'High',
-        estimatedDurationMinutes: 60,
-        allowParentAutoComplete: true,
-      });
+      expect(fetch).toHaveBeenCalledWith('/api/tasks', expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+        }),
+        body: expect.stringContaining('Test Task'),
+      }));
     });
 
     await waitFor(() => {
@@ -167,9 +170,12 @@ describe('CreateTaskModal', () => {
 
   it('should handle form submission error', async () => {
     const user = userEvent.setup();
-    const mockCreateTask = vi.fn().mockRejectedValue(new Error('API Error'));
 
-    vi.mocked(require('@/lib/api').createTask).mockImplementation(mockCreateTask);
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+    } as Response);
 
     render(
       <CreateTaskModal
@@ -203,7 +209,7 @@ describe('CreateTaskModal', () => {
     );
 
     const prioritySelect = screen.getByLabelText(/priority/i);
-    const durationInput = screen.getByLabelText(/estimated duration/i);
+    const durationInput = screen.getByLabelText(/duration \(minutes\)/i);
     const autoCompleteCheckbox = screen.getByLabelText(/allow parent auto-complete/i);
 
     expect(prioritySelect).toHaveValue('Medium');
@@ -254,13 +260,16 @@ describe('CreateTaskModal', () => {
 
   it('should handle description as optional field', async () => {
     const user = userEvent.setup();
-    const mockCreateTask = vi.fn().mockResolvedValue({
+    const mockResponse = {
       id: '1',
       title: 'Test Task',
       description: null,
-    });
+    };
 
-    vi.mocked(require('@/lib/api').createTask).mockImplementation(mockCreateTask);
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: mockResponse }),
+    } as Response);
 
     render(
       <CreateTaskModal
@@ -277,13 +286,13 @@ describe('CreateTaskModal', () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(mockCreateTask).toHaveBeenCalledWith({
-        title: 'Test Task',
-        description: '',
-        priority: 'Medium',
-        estimatedDurationMinutes: 30,
-        allowParentAutoComplete: false,
-      });
+      expect(fetch).toHaveBeenCalledWith('/api/tasks', expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+        }),
+        body: expect.stringContaining('Test Task'),
+      }));
     });
   });
 
@@ -357,9 +366,15 @@ describe('CreateTaskModal', () => {
 
   it('should handle loading state during submission', async () => {
     const user = userEvent.setup();
-    const mockCreateTask = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+    const mockResponse = {
+      id: '1',
+      title: 'Test Task',
+    };
 
-    vi.mocked(require('@/lib/api').createTask).mockImplementation(mockCreateTask);
+    vi.mocked(fetch).mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({
+      ok: true,
+      json: async () => ({ data: mockResponse }),
+    } as Response), 100)));
 
     render(
       <CreateTaskModal

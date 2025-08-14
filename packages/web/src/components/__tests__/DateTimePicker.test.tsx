@@ -19,7 +19,7 @@ describe('DateTimePicker', () => {
     );
 
     expect(screen.getByDisplayValue('')).toBeInTheDocument();
-    expect(screen.getAllByRole('textbox')).toHaveLength(2);
+    expect(screen.getAllByRole('spinbutton')).toHaveLength(2);
   });
 
   it('displays validation error when both date and time are required', () => {
@@ -45,8 +45,8 @@ describe('DateTimePicker', () => {
       />
     );
 
-    const dateInput = screen.getAllByRole('textbox')[0];
-    const timeInput = screen.getAllByRole('textbox')[1];
+    const dateInput = screen.getAllByRole('spinbutton')[0];
+    const timeInput = screen.getAllByRole('spinbutton')[1];
 
     // Set valid date and time
     fireEvent.change(dateInput, { target: { value: '2024-12-25' } });
@@ -79,7 +79,7 @@ describe('DateTimePicker', () => {
       />
     );
 
-    const inputs = screen.getAllByRole('textbox');
+    const inputs = screen.getAllByRole('spinbutton');
     inputs.forEach(input => {
       expect(input).toHaveClass('border-danger-500');
     });

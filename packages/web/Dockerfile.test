@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+# Set environment variables to avoid ARM64 issues
+ENV ROLLUP_SKIP_NATIVE=true
+
 # Install dependencies for testing
 RUN apk add --no-cache libc6-compat
 
@@ -18,6 +21,9 @@ COPY . .
 
 # Generate Prisma client (needed for web tests that might mock API)
 RUN npx prisma generate --schema=./packages/api/prisma/schema.prisma
+
+# Fix Rollup ARM64 issue by installing the missing dependency
+RUN npm install @rollup/rollup-linux-arm64-musl --no-save
 
 # Set working directory to web package
 WORKDIR /app/packages/web

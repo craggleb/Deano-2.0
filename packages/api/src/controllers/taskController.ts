@@ -14,6 +14,7 @@ import {
   dependencyIdParamSchema
 } from '../lib/validation';
 import { BusinessRuleError, ValidationError, DependencyCycleError } from '../types';
+import { ZodError } from 'zod';
 
 const taskService = new TaskService();
 
@@ -28,7 +29,15 @@ export class TaskController {
         data: task,
       });
     } catch (error) {
-      if (error instanceof ValidationError) {
+      if (error instanceof ZodError) {
+        res.status(422).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: error.errors,
+          },
+        });
+      } else if (error instanceof ValidationError) {
         res.status(422).json({
           error: {
             code: error.code,
@@ -59,7 +68,15 @@ export class TaskController {
         data: task,
       });
     } catch (error) {
-      if (error instanceof ValidationError) {
+      if (error instanceof ZodError) {
+        res.status(422).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: error.errors,
+          },
+        });
+      } else if (error instanceof ValidationError) {
         res.status(404).json({
           error: {
             code: 'NOT_FOUND',
@@ -101,7 +118,15 @@ export class TaskController {
       
       res.status(204).send();
     } catch (error) {
-      if (error instanceof ValidationError) {
+      if (error instanceof ZodError) {
+        res.status(422).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: error.errors,
+          },
+        });
+      } else if (error instanceof ValidationError) {
         res.status(404).json({
           error: {
             code: 'NOT_FOUND',
@@ -137,7 +162,15 @@ export class TaskController {
         data: task,
       });
     } catch (error) {
-      if (error instanceof ValidationError) {
+      if (error instanceof ZodError) {
+        res.status(422).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: error.errors,
+          },
+        });
+      } else if (error instanceof ValidationError) {
         res.status(404).json({
           error: {
             code: 'NOT_FOUND',
@@ -171,13 +204,23 @@ export class TaskController {
         },
       });
     } catch (error) {
-      console.error('List tasks error:', error);
-      res.status(500).json({
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Internal server error',
-        },
-      });
+      if (error instanceof ZodError) {
+        res.status(422).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: error.errors,
+          },
+        });
+      } else {
+        console.error('List tasks error:', error);
+        res.status(500).json({
+          error: {
+            code: 'INTERNAL_ERROR',
+            message: 'Internal server error',
+          },
+        });
+      }
     }
   }
 
@@ -199,7 +242,15 @@ export class TaskController {
         data: task,
       });
     } catch (error) {
-      if (error instanceof ValidationError) {
+      if (error instanceof ZodError) {
+        res.status(422).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: error.errors,
+          },
+        });
+      } else if (error instanceof ValidationError) {
         res.status(404).json({
           error: {
             code: 'NOT_FOUND',
@@ -230,7 +281,15 @@ export class TaskController {
         data: { message: 'Dependency added successfully' },
       });
     } catch (error) {
-      if (error instanceof ValidationError) {
+      if (error instanceof ZodError) {
+        res.status(422).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: error.errors,
+          },
+        });
+      } else if (error instanceof ValidationError) {
         res.status(404).json({
           error: {
             code: 'NOT_FOUND',
@@ -272,13 +331,23 @@ export class TaskController {
       
       res.status(204).send();
     } catch (error) {
-      console.error('Remove dependency error:', error);
-      res.status(500).json({
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Internal server error',
-        },
-      });
+      if (error instanceof ZodError) {
+        res.status(422).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: error.errors,
+          },
+        });
+      } else {
+        console.error('Remove dependency error:', error);
+        res.status(500).json({
+          error: {
+            code: 'INTERNAL_ERROR',
+            message: 'Internal server error',
+          },
+        });
+      }
     }
   }
 
@@ -293,7 +362,15 @@ export class TaskController {
         data: { message: 'Dependencies updated successfully' },
       });
     } catch (error) {
-      if (error instanceof ValidationError) {
+      if (error instanceof ZodError) {
+        res.status(422).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: error.errors,
+          },
+        });
+      } else if (error instanceof ValidationError) {
         res.status(404).json({
           error: {
             code: 'NOT_FOUND',
@@ -340,7 +417,15 @@ export class TaskController {
         data: task,
       });
     } catch (error) {
-      if (error instanceof ValidationError) {
+      if (error instanceof ZodError) {
+        res.status(422).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: error.errors,
+          },
+        });
+      } else if (error instanceof ValidationError) {
         res.status(404).json({
           error: {
             code: 'NOT_FOUND',
@@ -376,7 +461,15 @@ export class TaskController {
         data: task,
       });
     } catch (error) {
-      if (error instanceof ValidationError) {
+      if (error instanceof ZodError) {
+        res.status(422).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: error.errors,
+          },
+        });
+      } else if (error instanceof ValidationError) {
         res.status(404).json({
           error: {
             code: 'NOT_FOUND',
@@ -413,7 +506,15 @@ export class TaskController {
         data: schedule,
       });
     } catch (error) {
-      if (error instanceof DependencyCycleError) {
+      if (error instanceof ZodError) {
+        res.status(422).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: error.errors,
+          },
+        });
+      } else if (error instanceof DependencyCycleError) {
         res.status(422).json({
           error: {
             code: 'DEPENDENCY_CYCLE',
@@ -443,13 +544,23 @@ export class TaskController {
         data: tasks,
       });
     } catch (error) {
-      console.error('Bulk import error:', error);
-      res.status(500).json({
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Internal server error',
-        },
-      });
+      if (error instanceof ZodError) {
+        res.status(422).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: error.errors,
+          },
+        });
+      } else {
+        console.error('Bulk import error:', error);
+        res.status(500).json({
+          error: {
+            code: 'INTERNAL_ERROR',
+            message: 'Internal server error',
+          },
+        });
+      }
     }
   }
 
@@ -468,13 +579,23 @@ export class TaskController {
       
       res.send(data);
     } catch (error) {
-      console.error('Export tasks error:', error);
-      res.status(500).json({
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Internal server error',
-        },
-      });
+      if (error instanceof ZodError) {
+        res.status(422).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: error.errors,
+          },
+        });
+      } else {
+        console.error('Export tasks error:', error);
+        res.status(500).json({
+          error: {
+            code: 'INTERNAL_ERROR',
+            message: 'Internal server error',
+          },
+        });
+      }
     }
   }
 

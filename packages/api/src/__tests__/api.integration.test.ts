@@ -72,22 +72,28 @@ describe('API Integration Tests', () => {
         });
       });
 
-      it('should return 500 for invalid title length (validation error)', async () => {
-        await request(app)
+      it('should return 422 for invalid title length (validation error)', async () => {
+        const response = await request(app)
           .post('/api/tasks')
           .send({
             title: 'ab', // Too short
           })
-          .expect(500);
+          .expect(422);
+
+        expect(response.body.error.code).toBe('VALIDATION_ERROR');
+        expect(response.body.error.message).toBe('Validation failed');
       });
 
-      it('should return 500 for missing title (validation error)', async () => {
-        await request(app)
+      it('should return 422 for missing title (validation error)', async () => {
+        const response = await request(app)
           .post('/api/tasks')
           .send({
             description: 'No title provided',
           })
-          .expect(500);
+          .expect(422);
+
+        expect(response.body.error.code).toBe('VALIDATION_ERROR');
+        expect(response.body.error.message).toBe('Validation failed');
       });
 
       it('should return 422 for invalid date format (validation error)', async () => {
@@ -192,10 +198,13 @@ describe('API Integration Tests', () => {
         });
       });
 
-      it('should return 500 for invalid task id format', async () => {
-        await request(app)
+      it('should return 422 for invalid task id format', async () => {
+        const response = await request(app)
           .get('/api/tasks/non-existent-id')
-          .expect(500);
+          .expect(422);
+
+        expect(response.body.error.code).toBe('VALIDATION_ERROR');
+        expect(response.body.error.message).toBe('Validation failed');
       });
     });
 
@@ -294,10 +303,13 @@ describe('API Integration Tests', () => {
           .expect(404);
       });
 
-      it('should return 500 for invalid task id format', async () => {
-        await request(app)
+      it('should return 422 for invalid task id format', async () => {
+        const response = await request(app)
           .delete('/api/tasks/non-existent-id')
-          .expect(500);
+          .expect(422);
+
+        expect(response.body.error.code).toBe('VALIDATION_ERROR');
+        expect(response.body.error.message).toBe('Validation failed');
       });
     });
 
@@ -325,11 +337,14 @@ describe('API Integration Tests', () => {
         });
       });
 
-      it('should return 500 for invalid parent id format', async () => {
-        await request(app)
+      it('should return 422 for invalid parent id format', async () => {
+        const response = await request(app)
           .post('/api/tasks/non-existent-id/subtasks')
           .send({ title: 'Child Task' })
-          .expect(500);
+          .expect(422);
+
+        expect(response.body.error.code).toBe('VALIDATION_ERROR');
+        expect(response.body.error.message).toBe('Validation failed');
       });
     });
 
@@ -351,10 +366,13 @@ describe('API Integration Tests', () => {
         expect(response.body.data.status).toBe('Completed');
       });
 
-      it('should return 500 for invalid task id format', async () => {
-        await request(app)
+      it('should return 422 for invalid task id format', async () => {
+        const response = await request(app)
           .post('/api/tasks/non-existent-id/complete')
-          .expect(500);
+          .expect(422);
+
+        expect(response.body.error.code).toBe('VALIDATION_ERROR');
+        expect(response.body.error.message).toBe('Validation failed');
       });
     });
 
@@ -374,10 +392,13 @@ describe('API Integration Tests', () => {
         expect(response.body.data.status).toBe('Todo');
       });
 
-      it('should return 500 for invalid task id format', async () => {
-        await request(app)
+      it('should return 422 for invalid task id format', async () => {
+        const response = await request(app)
           .post('/api/tasks/non-existent-id/reopen')
-          .expect(500);
+          .expect(422);
+
+        expect(response.body.error.code).toBe('VALIDATION_ERROR');
+        expect(response.body.error.message).toBe('Validation failed');
       });
     });
 
@@ -403,7 +424,7 @@ describe('API Integration Tests', () => {
         });
       });
 
-      it('should return 500 for invalid dependent task id format', async () => {
+      it('should return 422 for invalid dependent task id format', async () => {
         const blocker = await prisma.task.create({
           data: { 
             title: 'Blocker Task',
@@ -413,13 +434,16 @@ describe('API Integration Tests', () => {
           },
         });
 
-        await request(app)
+        const response = await request(app)
           .post('/api/tasks/non-existent-id/dependencies')
           .send({ dependsOnTaskId: blocker.id })
-          .expect(500);
+          .expect(422);
+
+        expect(response.body.error.code).toBe('VALIDATION_ERROR');
+        expect(response.body.error.message).toBe('Validation failed');
       });
 
-      it('should return 500 for invalid blocker task id format', async () => {
+      it('should return 422 for invalid blocker task id format', async () => {
         const dependent = await prisma.task.create({
           data: { 
             title: 'Dependent Task',
@@ -429,10 +453,13 @@ describe('API Integration Tests', () => {
           },
         });
 
-        await request(app)
+        const response = await request(app)
           .post(`/api/tasks/${dependent.id}/dependencies`)
           .send({ dependsOnTaskId: 'non-existent-id' })
-          .expect(500);
+          .expect(422);
+
+        expect(response.body.error.code).toBe('VALIDATION_ERROR');
+        expect(response.body.error.message).toBe('Validation failed');
       });
     });
   });
