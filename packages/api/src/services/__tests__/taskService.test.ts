@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TaskService } from '../taskService';
 import { prisma } from '@/lib/database';
-import { BusinessRuleError, ValidationError, DependencyCycleError, TaskStatus, Priority } from '@/types';
+import { BusinessRuleError, ValidationError, DependencyCycleError, TaskStatus, Priority, RecurrenceType } from '../../types';
 
 describe('TaskService', () => {
   let taskService: TaskService;
@@ -219,6 +219,36 @@ describe('TaskService', () => {
 
       const completedTask = await taskService.completeTask(task.id);
       expect(completedTask.status).toBe('Completed');
+    });
+
+    it('should create next recurrence when completing a recurring task', async () => {
+      const recurrencePattern = {
+        type: RecurrenceType.Daily,
+        interval: 1,
+        startDate: new Date(),
+      };
+
+      const task = await taskService.createTask({
+        title: 'Daily Recurring Task',
+        isRecurring: true,
+        recurrencePattern,
+      });
+
+      // Complete the task
+      const completedTask = await taskService.completeTask(task.id);
+      expect(completedTask.status).toBe('Completed');
+
+      // Check if a new recurring task was created
+      const { tasks: allTasks } = await taskService.listTasks({});
+      const recurringTasks = allTasks.filter(t => t.isRecurring && t.status === 'Todo');
+      
+      // Should have at least one new recurring task
+      expect(recurringTasks.length).toBeGreaterThan(0);
+      
+      // The new task should have the same title but different ID
+      const newTask = recurringTasks.find(t => t.title === 'Daily Recurring Task' && t.id !== task.id);
+      expect(newTask).toBeDefined();
+      expect(newTask?.originalTaskId).toBe(task.id);
     });
 
     it('should not allow completing already completed task', async () => {

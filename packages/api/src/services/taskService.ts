@@ -40,6 +40,7 @@ export class TaskService {
       allowParentAutoComplete: taskData.allowParentAutoComplete || false,
       parentId: taskData.parentId,
       isRecurring: taskData.isRecurring || false,
+      originalTaskId: taskData.originalTaskId,
     };
     
     if (recurrencePattern) {
