@@ -233,6 +233,12 @@ export default function HomePage() {
             </div>
             <div className="flex items-center space-x-4">
               <a
+                href="/ordered"
+                className="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                Smart Queue
+              </a>
+              <a
                 href="/labels"
                 className="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
               >

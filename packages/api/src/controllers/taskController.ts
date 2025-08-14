@@ -499,4 +499,41 @@ export class TaskController {
       });
     }
   }
+
+  async orderTasks(req: Request, res: Response) {
+    try {
+      const { weights, horizonHours, overdueBoost, quickWinCapMins } = req.body;
+      
+      const config = {
+        weights: weights || { U: 0.45, P: 0.35, B: 0.15, Q: 0.05 },
+        horizonHours: horizonHours || 7 * 24,
+        overdueBoost: overdueBoost || 0.20,
+        quickWinCapMins: quickWinCapMins || 30,
+      };
+      
+      const result = await taskService.orderTasks(config);
+      
+      // Convert Map to object for JSON serialization
+      const taskScoresObj: Record<string, { score: number; urgency: number; priority: number; blocking: number; quickWin: number }> = {};
+      result.taskScores.forEach((value, key) => {
+        taskScoresObj[key] = value;
+      });
+      
+      res.json({
+        data: {
+          orderedTaskIds: result.orderedTaskIds,
+          taskScores: taskScoresObj,
+          cycles: result.cycles,
+        },
+      });
+    } catch (error) {
+      console.error('Order tasks error:', error);
+      res.status(500).json({
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Internal server error',
+        },
+      });
+    }
+  }
 }
