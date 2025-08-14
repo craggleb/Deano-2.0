@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, Search, Calendar, Clock, AlertTriangle, CheckCircle, Circle, Eye, EyeOff, SortAsc, SortDesc } from 'lucide-react';
 import TaskList from '@/components/TaskList';
 import CreateTaskModal from '@/components/CreateTaskModal';
+import LabelMultiSelect from '@/components/LabelMultiSelect';
 import { Task, TaskStatus, Priority } from '@/types';
 
 export default function HomePage() {
@@ -18,6 +19,7 @@ export default function HomePage() {
     status: '',
     priority: '',
     q: '',
+    labelIds: [] as string[],
   });
   
   // Add refs for scroll position preservation
@@ -32,6 +34,7 @@ export default function HomePage() {
       if (filters.status) params.append('status', filters.status);
       if (filters.priority) params.append('priority', filters.priority);
       if (filters.q) params.append('q', filters.q);
+      if (filters.labelIds.length > 0) params.append('labelIds', filters.labelIds.join(','));
 
       const response = await fetch(`/api/tasks?${params.toString()}`);
       
@@ -350,7 +353,7 @@ export default function HomePage() {
               </div>
 
               {/* Filters Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-2">
                     Status Filter
@@ -385,6 +388,17 @@ export default function HomePage() {
                     <option value="Medium">Medium</option>
                     <option value="Low">Low</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Label Filter
+                  </label>
+                  <LabelMultiSelect
+                    selectedLabelIds={filters.labelIds}
+                    onSelectionChange={(labelIds) => setFilters({ ...filters, labelIds })}
+                    placeholder="Select labels..."
+                  />
                 </div>
               </div>
 

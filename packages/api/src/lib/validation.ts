@@ -183,6 +183,10 @@ export const taskQuerySchema = z.object({
   status: taskStatusSchema.optional(),
   priority: prioritySchema.optional(),
   parentId: z.string().cuid().nullable().optional(),
+  labelIds: z.union([
+    z.string().transform(val => val.split(',')),
+    z.array(z.string())
+  ]).optional(),
   q: z.string().optional(),
   page: z.union([
     z.string().transform(val => parseInt(val, 10)),
