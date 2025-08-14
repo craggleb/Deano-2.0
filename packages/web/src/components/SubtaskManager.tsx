@@ -45,13 +45,31 @@ export default function SubtaskManager({ parentTask, onTaskUpdate, isExpanded = 
 
   const handleCreateSubtask = async (taskData: any) => {
     try {
-      const response = await fetch(`/api/tasks/${parentTask.id}/subtasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(taskData),
-      });
+      // If the user selected a different parent task, use the regular task creation endpoint
+      // If they kept the original parent task, use the subtask endpoint
+      const selectedParentId = taskData.parentId;
+      const isOriginalParent = selectedParentId === parentTask.id;
+      
+      let response;
+      if (isOriginalParent) {
+        // Use subtask endpoint for the original parent
+        response = await fetch(`/api/tasks/${parentTask.id}/subtasks`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(taskData),
+        });
+      } else {
+        // Use regular task creation endpoint for different parent
+        response = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(taskData),
+        });
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -277,8 +295,10 @@ export default function SubtaskManager({ parentTask, onTaskUpdate, isExpanded = 
         <CreateTaskModal
           onClose={() => setShowCreateModal(false)}
           onSubmit={handleCreateSubtask}
+          parentTaskId={parentTask.id}
         />
       )}
+
 
       {/* Edit Subtask Modal */}
       {editingSubtask && (

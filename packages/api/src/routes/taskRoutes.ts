@@ -668,4 +668,101 @@ router.post('/bulkImport', taskController.bulkImport.bind(taskController));
  */
 router.get('/export', taskController.exportTasks.bind(taskController));
 
+/**
+ * @swagger
+ * /api/tasks/order:
+ *   post:
+ *     summary: Get ordered list of tasks based on priority algorithm
+ *     tags: [Tasks]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               weights:
+ *                 type: object
+ *                 properties:
+ *                   U:
+ *                     type: number
+ *                     description: Urgency weight (default: 0.45)
+ *                   P:
+ *                     type: number
+ *                     description: Priority weight (default: 0.35)
+ *                   B:
+ *                     type: number
+ *                     description: Blocking impact weight (default: 0.15)
+ *                   Q:
+ *                     type: number
+ *                     description: Quick win weight (default: 0.05)
+ *               horizonHours:
+ *                 type: number
+ *                 description: Urgency look-ahead window in hours (default: 168)
+ *               overdueBoost:
+ *                 type: number
+ *                 description: Boost for overdue tasks (default: 0.20)
+ *               quickWinCapMins:
+ *                 type: number
+ *                 description: Quick win duration cap in minutes (default: 30)
+ *     responses:
+ *       200:
+ *         description: Tasks ordered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     orderedTaskIds:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       description: Array of task IDs in optimal order
+ *                     taskScores:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: object
+ *                         properties:
+ *                           score:
+ *                             type: number
+ *                           urgency:
+ *                             type: number
+ *                           priority:
+ *                             type: number
+ *                           blocking:
+ *                             type: number
+ *                           quickWin:
+ *                             type: number
+ *                       description: Detailed scores for each task
+ *                     cycles:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       description: Detected dependency cycles (if any)
+ *       422:
+ *         description: Dependency cycle detected
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: string
+ *                     message:
+ *                       type: string
+ *                     details:
+ *                       type: object
+ *                       properties:
+ *                         cycle:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ */
+router.post('/order', taskController.orderTasks.bind(taskController));
+
 export default router;

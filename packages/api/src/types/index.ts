@@ -13,6 +13,14 @@ export enum Priority {
   High = 'High'
 }
 
+export enum RecurrenceType {
+  Daily = 'Daily',
+  Weekly = 'Weekly',
+  Monthly = 'Monthly',
+  Yearly = 'Yearly',
+  Custom = 'Custom'
+}
+
 // Define basic types that would normally come from Prisma
 interface Task {
   id: string;
@@ -28,6 +36,11 @@ interface Task {
   scheduledEnd?: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  // Recurring task fields
+  isRecurring: boolean;
+  recurrencePattern?: string | null;
+  nextRecurrenceDate?: Date | null;
+  originalTaskId?: string | null;
 }
 
 interface Dependency {
@@ -78,6 +91,16 @@ export type LabelWithTaskCount = Label & {
 };
 
 // Input types
+export interface RecurrencePattern {
+  type: RecurrenceType;
+  interval: number; // Every X days/weeks/months/years
+  startDate: Date;
+  endDate?: Date; // Optional end date
+  daysOfWeek?: number[]; // For weekly: 0=Sunday, 1=Monday, etc.
+  dayOfMonth?: number; // For monthly: 1-31
+  customPattern?: string; // For custom patterns
+}
+
 export interface CreateTaskInput {
   title: string;
   description?: string;
@@ -88,6 +111,10 @@ export interface CreateTaskInput {
   allowParentAutoComplete?: boolean;
   parentId?: string;
   labelIds?: string[];
+  // Recurring task fields
+  isRecurring?: boolean;
+  recurrencePattern?: RecurrencePattern;
+  originalTaskId?: string;
 }
 
 export interface UpdateTaskInput {
@@ -100,6 +127,9 @@ export interface UpdateTaskInput {
   allowParentAutoComplete?: boolean;
   parentId?: string | null;
   labelIds?: string[];
+  // Recurring task fields
+  isRecurring?: boolean;
+  recurrencePattern?: RecurrencePattern | null;
 }
 
 export interface CreateLabelInput {

@@ -25,6 +25,12 @@ model Task {
   createdAt               DateTime  @default(now()) @db.Timestamptz
   updatedAt               DateTime  @updatedAt @db.Timestamptz
 
+  // Recurring task fields
+  isRecurring             Boolean   @default(false)
+  recurrencePattern       String?   @db.Text // JSON string for recurrence pattern
+  nextRecurrenceDate      DateTime? @db.Timestamptz
+  originalTaskId          String?   // Reference to the original recurring task
+
   // Self-referencing relationship for parent/child tasks
   parent   Task?   @relation("TaskHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children Task[]  @relation("TaskHierarchy")
@@ -44,6 +50,9 @@ model Task {
   @@index([dueAt])
   @@index([parentId])
   @@index([priority])
+  @@index([isRecurring])
+  @@index([nextRecurrenceDate])
+  @@index([originalTaskId])
 }
 
 model Label {
@@ -122,4 +131,12 @@ enum Priority {
   Low
   Medium
   High
+}
+
+enum RecurrenceType {
+  Daily
+  Weekly
+  Monthly
+  Yearly
+  Custom
 }

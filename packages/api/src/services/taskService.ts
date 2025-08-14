@@ -8,11 +8,15 @@ import {
   BulkImportTask,
   BusinessRuleError,
   DependencyCycleError,
-  ValidationError
+  ValidationError,
+  Priority,
+  RecurrencePattern,
+  RecurrenceType,
+  TaskStatus
 } from '../types';
 import { LabelService } from './labelService';
 
-import { addMinutes, addDays, startOfDay, isBefore, isAfter } from 'date-fns';
+import { addMinutes, addDays, startOfDay, isBefore, isAfter, addWeeks, addMonths, addYears } from 'date-fns';
 
 export class TaskService {
   private labelService: LabelService;
@@ -23,19 +27,29 @@ export class TaskService {
 
   // Task CRUD operations
   async createTask(input: CreateTaskInput): Promise<TaskWithRelations> {
-    const { labelIds, ...taskData } = input;
+    const { labelIds, recurrencePattern, ...taskData } = input;
+    
+    // Handle recurring task fields
+    const createData: any = {
+      title: taskData.title,
+      description: taskData.description,
+      status: taskData.status || 'Todo',
+      priority: taskData.priority || 'Medium',
+      dueAt: taskData.dueAt,
+      estimatedDurationMinutes: taskData.estimatedDurationMinutes || 30,
+      allowParentAutoComplete: taskData.allowParentAutoComplete || false,
+      parentId: taskData.parentId,
+      isRecurring: taskData.isRecurring || false,
+    };
+    
+    if (recurrencePattern) {
+      createData.recurrencePattern = JSON.stringify(recurrencePattern);
+      // Calculate next recurrence date
+      createData.nextRecurrenceDate = this.calculateNextRecurrenceDate(recurrencePattern, taskData.dueAt || new Date());
+    }
     
     const task = await prisma.task.create({
-      data: {
-        title: taskData.title,
-        description: taskData.description,
-        status: taskData.status || 'Todo',
-        priority: taskData.priority || 'Medium',
-        dueAt: taskData.dueAt,
-        estimatedDurationMinutes: taskData.estimatedDurationMinutes || 30,
-        allowParentAutoComplete: taskData.allowParentAutoComplete || false,
-        parentId: taskData.parentId,
-      },
+      data: createData,
       include: {
         children: true,
         parent: true,
@@ -96,7 +110,18 @@ export class TaskService {
       }
     }
 
-    const { labelIds, ...taskData } = input;
+    const { labelIds, recurrencePattern, ...taskData } = input;
+
+    // Handle recurring task fields
+    const updateData: any = { ...taskData };
+    
+    if (input.isRecurring !== undefined) {
+      updateData.isRecurring = input.isRecurring;
+    }
+    
+    if (recurrencePattern !== undefined) {
+      updateData.recurrencePattern = recurrencePattern ? JSON.stringify(recurrencePattern) : null;
+    }
 
     // Track status changes for analytics
     const auditEntries: Array<{ fieldName: string; oldValue: string | null; newValue: string | null }> = [];
@@ -127,7 +152,7 @@ export class TaskService {
 
     await prisma.task.update({
       where: { id },
-      data: taskData,
+      data: updateData,
     });
 
     // Create audit entries for tracked changes
@@ -484,8 +509,29 @@ export class TaskService {
             dependentTask: true,
           },
         },
+        taskLabels: {
+          include: {
+            label: true,
+          },
+        },
       },
     });
+
+    // Handle recurring task logic
+    if (updatedTask.isRecurring && updatedTask.recurrencePattern) {
+      try {
+        const pattern: RecurrencePattern = JSON.parse(updatedTask.recurrencePattern);
+        const nextDueDate = this.calculateNextValidRecurrenceDate(pattern, updatedTask.dueAt || new Date());
+
+        // Check if we've reached the end date
+        if (!pattern.endDate || isBefore(nextDueDate, pattern.endDate)) {
+          // Create the next occurrence
+          await this.createNextRecurrence(updatedTask as TaskWithRelations);
+        }
+      } catch (error) {
+        console.error('Error handling recurring task completion:', error);
+      }
+    }
 
     return updatedTask as TaskWithRelations;
   }
@@ -1089,5 +1135,428 @@ export class TaskService {
         totalStatusChanges: statusChangeAudits.length,
       },
     };
+  }
+
+  // Task ordering algorithm
+  async orderTasks(config: {
+    weights?: { U: number; P: number; B: number; Q: number };
+    horizonHours?: number;
+    overdueBoost?: number;
+    quickWinCapMins?: number;
+  } = {}): Promise<{
+    orderedTaskIds: string[];
+    taskScores: Map<string, { score: number; urgency: number; priority: number; blocking: number; quickWin: number }>;
+    cycles?: string[];
+  }> {
+    const {
+      weights = { U: 0.45, P: 0.35, B: 0.15, Q: 0.05 },
+      horizonHours = 7 * 24,
+      overdueBoost = 0.20,
+      quickWinCapMins = 30,
+    } = config;
+
+    const now = new Date();
+
+    // Get all tasks for ordering algorithm
+    const tasks = await prisma.task.findMany({
+      orderBy: [
+        { priority: 'desc' },
+        { dueAt: 'asc' },
+        { createdAt: 'asc' },
+      ],
+      include: {
+        children: true,
+        parent: true,
+        dependencies: {
+          include: {
+            blockerTask: true,
+          },
+        },
+        blockingTasks: {
+          include: {
+            dependentTask: true,
+          },
+        },
+        taskLabels: {
+          include: {
+            label: true,
+          },
+        },
+      },
+    });
+    const taskMap = new Map((tasks as TaskWithRelations[]).map(t => [t.id, t]));
+
+    // 1) Normalize structure: make parents depend on all their subtasks
+    for (const task of tasks) {
+      if (task.children && task.children.length > 0) {
+        for (const child of task.children) {
+          // Add dependency: child depends on parent (only if it doesn't already exist)
+          try {
+            await this.addDependency(child.id, task.id);
+          } catch (error) {
+            // Ignore dependency cycle errors - the dependency might already exist
+            if (error instanceof DependencyCycleError) {
+              console.log(`Skipping dependency ${child.id} -> ${task.id} due to existing cycle`);
+            } else {
+              throw error;
+            }
+          }
+        }
+      }
+    }
+
+    // 2) Build graph and in-degrees
+    const graph = new Map<string, Set<string>>();
+    const inDegree = new Map<string, number>();
+    const allTaskIds = new Set<string>();
+
+    // Initialize
+    for (const task of tasks) {
+      allTaskIds.add(task.id);
+      graph.set(task.id, new Set());
+      inDegree.set(task.id, 0);
+    }
+
+    // Build dependency edges
+    for (const task of tasks) {
+      const blockers = task.dependencies?.map(d => d.dependsOnTaskId) || [];
+      for (const blockerId of blockers) {
+        if (graph.has(blockerId)) {
+          graph.get(blockerId)!.add(task.id);
+          inDegree.set(task.id, inDegree.get(task.id)! + 1);
+        }
+      }
+    }
+
+    // 3) Precompute blocking impact via reverse topological longest-path
+    const depth = this.longestDownstreamDepth(allTaskIds, graph);
+    const maxDepth = Math.max(...Array.from(depth.values()), 1);
+
+    // 4) Seed ready set (in-degree 0) with a max-heap by score
+    const ready = new Set<string>();
+    for (const [taskId, degree] of inDegree) {
+      if (degree === 0) {
+        ready.add(taskId);
+      }
+    }
+
+    const orderedTaskIds: string[] = [];
+    const taskScores = new Map<string, { score: number; urgency: number; priority: number; blocking: number; quickWin: number }>();
+    let seen = 0;
+
+    while (ready.size > 0) {
+      // 5) Find the task with highest score
+      let bestTaskId = '';
+      let bestScore = -Infinity;
+      let bestTieBreak: [number, number, number, string] = [Infinity, -Infinity, Infinity, ''];
+
+      for (const taskId of ready) {
+        const scoreResult = this.calculateTaskScore(taskId, taskMap.get(taskId)!, {
+          weights,
+          horizonHours,
+          overdueBoost,
+          quickWinCapMins,
+          depth,
+          maxDepth,
+          now,
+        });
+
+        const [score, tieBreak] = scoreResult;
+        taskScores.set(taskId, scoreResult[2]);
+
+        if (score > bestScore || (score === bestScore && this.compareTieBreak(tieBreak, bestTieBreak) < 0)) {
+          bestScore = score;
+          bestTieBreak = tieBreak;
+          bestTaskId = taskId;
+        }
+      }
+
+      if (!bestTaskId) break;
+
+      // Remove from ready set and add to ordered list
+      ready.delete(bestTaskId);
+      orderedTaskIds.push(bestTaskId);
+      seen++;
+
+      // 6) "Complete" id: unlock its dependents
+      const dependents = graph.get(bestTaskId) || new Set();
+      for (const dependentId of dependents) {
+        const currentDegree = inDegree.get(dependentId)!;
+        inDegree.set(dependentId, currentDegree - 1);
+        if (currentDegree - 1 === 0) {
+          ready.add(dependentId);
+        }
+      }
+    }
+
+    // 7) Cycle check
+    if (seen < allTaskIds.size) {
+      const cycles = Array.from(inDegree.entries())
+        .filter(([_, degree]) => degree > 0)
+        .map(([taskId, _]) => taskId);
+      
+      const sampleCycle = this.sampleCycle(cycles, graph);
+      return {
+        orderedTaskIds: [],
+        taskScores,
+        cycles: sampleCycle,
+      };
+    }
+
+    return {
+      orderedTaskIds,
+      taskScores,
+    };
+  }
+
+  private calculateTaskScore(
+    taskId: string,
+    task: TaskWithRelations,
+    config: {
+      weights: { U: number; P: number; B: number; Q: number };
+      horizonHours: number;
+      overdueBoost: number;
+      quickWinCapMins: number;
+      depth: Map<string, number>;
+      maxDepth: number;
+      now: Date;
+    }
+  ): [number, [number, number, number, string], { score: number; urgency: number; priority: number; blocking: number; quickWin: number }] {
+    const { weights, horizonHours, overdueBoost, quickWinCapMins, depth, maxDepth, now } = config;
+
+    const urgency = this.urgencyComponent(task.dueAt, now, horizonHours, overdueBoost);
+    const priority = this.normalizePriority(task.priority);
+    const blocking = maxDepth === 0 ? 0 : (depth.get(taskId) || 0) / maxDepth;
+    const quickWin = this.quickWinComponent(task.estimatedDurationMinutes, quickWinCapMins);
+
+    const score = weights.U * urgency + weights.P * priority + weights.B * blocking + weights.Q * quickWin;
+
+    // Deterministic tie-breaks: earlier due, higher priority, shorter duration, id
+    const tieBreak: [number, number, number, string] = [
+      this.dueTimestampOrInfinity(task.dueAt),
+      -this.priorityToNumber(task.priority),
+      task.estimatedDurationMinutes || Infinity,
+      taskId,
+    ];
+
+    return [score, tieBreak, { score, urgency, priority, blocking, quickWin }];
+  }
+
+  private urgencyComponent(dueAt: Date | null | undefined, now: Date, horizonHours: number, overdueBoost: number): number {
+    if (!dueAt) return 0;
+    
+    if (dueAt <= now) {
+      return 1.0 + overdueBoost;
+    }
+    
+    const dtHours = (dueAt.getTime() - now.getTime()) / (1000 * 60 * 60);
+    const u = 1.0 - Math.max(0, Math.min(1, dtHours / horizonHours));
+    return u;
+  }
+
+  private normalizePriority(priority: Priority): number {
+    const priorityMap = { Low: 1, Medium: 2, High: 3 };
+    const p = Math.max(1, Math.min(3, priorityMap[priority]));
+    return (p - 1) / 2.0;
+  }
+
+  private priorityToNumber(priority: Priority): number {
+    const priorityMap = { Low: 1, Medium: 2, High: 3 };
+    return priorityMap[priority];
+  }
+
+  private quickWinComponent(durationMins: number, quickWinCapMins: number): number {
+    if (!durationMins) return 0;
+    const d = Math.max(1, Math.min(quickWinCapMins, durationMins));
+    return 1.0 - (d / quickWinCapMins);
+  }
+
+  private dueTimestampOrInfinity(dueAt: Date | null | undefined): number {
+    return dueAt ? dueAt.getTime() : Infinity;
+  }
+
+  private compareTieBreak(a: [number, number, number, string], b: [number, number, number, string]): number {
+    for (let i = 0; i < 4; i++) {
+      if (a[i] < b[i]) return -1;
+      if (a[i] > b[i]) return 1;
+    }
+    return 0;
+  }
+
+  private longestDownstreamDepth(allTaskIds: Set<string>, graph: Map<string, Set<string>>): Map<string, number> {
+    const reverseGraph = this.reverseGraph(graph);
+    const inDegreeRev = new Map<string, number>();
+    const depth = new Map<string, number>();
+
+    // Initialize
+    for (const taskId of allTaskIds) {
+      inDegreeRev.set(taskId, reverseGraph.get(taskId)?.size || 0);
+      depth.set(taskId, 0);
+    }
+
+    // Topological sort on reverse graph
+    const queue: string[] = [];
+    for (const [taskId, degree] of inDegreeRev) {
+      if (degree === 0) {
+        queue.push(taskId);
+      }
+    }
+
+    while (queue.length > 0) {
+      const node = queue.shift()!;
+      const dependents = reverseGraph.get(node) || new Set();
+      
+      for (const dependent of dependents) {
+        const currentDepth = depth.get(dependent) || 0;
+        const newDepth = (depth.get(node) || 0) + 1;
+        depth.set(dependent, Math.max(currentDepth, newDepth));
+        
+        const currentDegree = inDegreeRev.get(dependent)!;
+        inDegreeRev.set(dependent, currentDegree - 1);
+        if (currentDegree - 1 === 0) {
+          queue.push(dependent);
+        }
+      }
+    }
+
+    return depth;
+  }
+
+  private reverseGraph(graph: Map<string, Set<string>>): Map<string, Set<string>> {
+    const reverse = new Map<string, Set<string>>();
+    
+    for (const [u, dependents] of graph) {
+      if (!reverse.has(u)) reverse.set(u, new Set());
+      for (const v of dependents) {
+        if (!reverse.has(v)) reverse.set(v, new Set());
+        reverse.get(v)!.add(u);
+      }
+    }
+    
+    return reverse;
+  }
+
+  private sampleCycle(nodes: string[], graph: Map<string, Set<string>>): string[] {
+    const visited = new Set<string>();
+    const stack = new Set<string>();
+    const path: string[] = [];
+
+    const dfs = (u: string): boolean => {
+      visited.add(u);
+      stack.add(u);
+      path.push(u);
+      
+      const dependents = graph.get(u) || new Set();
+      for (const v of dependents) {
+        if (!nodes.includes(v)) continue;
+        if (!visited.has(v)) {
+          if (dfs(v)) return true;
+        } else if (stack.has(v)) {
+          path.push(v);
+          return true;
+        }
+      }
+      
+      stack.delete(u);
+      path.pop();
+      return false;
+    };
+
+    for (const node of nodes) {
+      if (!visited.has(node)) {
+        if (dfs(node)) break;
+      }
+    }
+
+    return this.pathToCycleString(path);
+  }
+
+  private pathToCycleString(path: string[]): string[] {
+    if (path.length < 2) return path;
+    
+    // Find the cycle in the path
+    const lastNode = path[path.length - 1];
+    const cycleStart = path.indexOf(lastNode);
+    
+    if (cycleStart !== -1 && cycleStart < path.length - 1) {
+      return path.slice(cycleStart);
+    }
+    
+    return path;
+  }
+
+  // Recurring task methods
+  private calculateNextRecurrenceDate(pattern: RecurrencePattern, currentDate: Date): Date {
+    const { type, interval } = pattern;
+    let nextDate = new Date(currentDate);
+
+    switch (type) {
+      case RecurrenceType.Daily:
+        nextDate = addDays(currentDate, interval);
+        break;
+      case RecurrenceType.Weekly:
+        nextDate = addWeeks(currentDate, interval);
+        break;
+      case RecurrenceType.Monthly:
+        nextDate = addMonths(currentDate, interval);
+        break;
+      case RecurrenceType.Yearly:
+        nextDate = addYears(currentDate, interval);
+        break;
+      case RecurrenceType.Custom:
+        // For custom patterns, we'll use a simple daily interval for now
+        nextDate = addDays(currentDate, interval);
+        break;
+    }
+
+    return nextDate;
+  }
+
+  private calculateNextValidRecurrenceDate(pattern: RecurrencePattern, fromDate: Date): Date {
+    const today = startOfDay(new Date());
+    let nextDate = this.calculateNextRecurrenceDate(pattern, fromDate);
+
+    // If the next recurrence would be overdue, keep calculating until we find a valid date
+    while (isBefore(nextDate, today)) {
+      nextDate = this.calculateNextRecurrenceDate(pattern, nextDate);
+    }
+
+    return nextDate;
+  }
+
+  private async createNextRecurrence(task: TaskWithRelations): Promise<TaskWithRelations | null> {
+    if (!task.isRecurring || !task.recurrencePattern) {
+      return null;
+    }
+
+    try {
+      const pattern: RecurrencePattern = JSON.parse(task.recurrencePattern);
+      const nextDueDate = this.calculateNextValidRecurrenceDate(pattern, task.dueAt || new Date());
+
+      // Check if we've reached the end date
+      if (pattern.endDate && isAfter(nextDueDate, pattern.endDate)) {
+        return null;
+      }
+
+      // Create the next occurrence
+      const nextTask = await this.createTask({
+        title: task.title,
+        description: task.description || undefined,
+        status: TaskStatus.Todo,
+        priority: task.priority,
+        dueAt: nextDueDate,
+        estimatedDurationMinutes: task.estimatedDurationMinutes,
+        allowParentAutoComplete: task.allowParentAutoComplete,
+        parentId: task.parentId || undefined,
+        isRecurring: true,
+        recurrencePattern: pattern,
+        originalTaskId: task.originalTaskId || task.id,
+      });
+
+      return nextTask;
+    } catch (error) {
+      console.error('Error creating next recurrence:', error);
+      return null;
+    }
   }
 }

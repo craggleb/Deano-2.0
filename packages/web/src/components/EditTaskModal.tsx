@@ -5,9 +5,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Clock, AlertTriangle } from 'lucide-react';
-import { Task, TaskStatus, Priority, UpdateTaskInput } from '@/types';
+import { Task, TaskStatus, Priority, UpdateTaskInput, RecurrencePattern } from '@/types';
 import DateTimePicker from './DateTimePicker';
 import LabelManager from './LabelManager';
+import RecurrencePatternSelector from './RecurrencePatternSelector';
 
 const updateTaskSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(200, 'Title must be less than 200 characters'),
@@ -25,6 +26,17 @@ const updateTaskSchema = z.object({
   }, 'Please enter a valid date and time'),
   estimatedDurationMinutes: z.number().min(0),
   allowParentAutoComplete: z.boolean(),
+  // Recurring task fields
+  isRecurring: z.boolean().optional(),
+  recurrencePattern: z.object({
+    type: z.enum(['Daily', 'Weekly', 'Monthly', 'Yearly', 'Custom']),
+    interval: z.number().min(1),
+    startDate: z.string(),
+    endDate: z.string().optional(),
+    daysOfWeek: z.array(z.number()).optional(),
+    dayOfMonth: z.number().optional(),
+    customPattern: z.string().optional(),
+  }).optional(),
 });
 
 type UpdateTaskFormData = z.infer<typeof updateTaskSchema>;
@@ -42,6 +54,16 @@ export default function EditTaskModal({ task, onClose, onSubmit, onDelete }: Edi
   const [selectedLabels, setSelectedLabels] = useState<string[]>(
     task.taskLabels?.map(tl => tl.labelId) || []
   );
+  const [recurrencePattern, setRecurrencePattern] = useState<RecurrencePattern | null>(() => {
+    if (task.isRecurring && task.recurrencePattern) {
+      try {
+        return JSON.parse(task.recurrencePattern);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
 
   const {
     register,
@@ -81,6 +103,9 @@ export default function EditTaskModal({ task, onClose, onSubmit, onDelete }: Edi
       const taskData = {
         ...data,
         labelIds: selectedLabels,
+        // Add recurring task data
+        isRecurring: !!recurrencePattern,
+        recurrencePattern: recurrencePattern || null,
       };
       await onSubmit(taskData);
       onClose();
@@ -222,6 +247,13 @@ export default function EditTaskModal({ task, onClose, onSubmit, onDelete }: Edi
               showHeader={false}
             />
           </div>
+
+          {/* Recurrence Pattern */}
+          <RecurrencePatternSelector
+            value={recurrencePattern}
+            onChange={setRecurrencePattern}
+            startDate={watch('dueAt')}
+          />
 
           {/* Allow Parent Auto Complete */}
           <div className="flex items-center space-x-2">
