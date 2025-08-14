@@ -37,10 +37,14 @@ ENV NODE_ENV production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy the built application
+# Copy the built application and Prisma files
 COPY --from=builder --chown=nextjs:nodejs /app/packages/api/dist ./dist
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/packages/api/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/packages/api/prisma ./prisma
+
+# Generate Prisma client for production
+RUN npx prisma generate --schema=./prisma/schema.prisma
 
 USER nextjs
 
