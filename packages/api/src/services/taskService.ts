@@ -266,6 +266,16 @@ export class TaskService {
         { description: { contains: restFilter.q, mode: 'insensitive' } },
       ];
     }
+    
+    if (restFilter.labelIds && restFilter.labelIds.length > 0) {
+      where.taskLabels = {
+        some: {
+          labelId: {
+            in: restFilter.labelIds
+          }
+        }
+      };
+    }
 
     const [tasks, total] = await Promise.all([
       prisma.task.findMany({
