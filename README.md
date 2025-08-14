@@ -4,10 +4,14 @@ A comprehensive full-stack task management application with strong dependency lo
 
 ## 🚀 Features
 
-- **Task Management**: Create, update, delete, and organize tasks with hierarchical subtasks
+- **Task Management**: Create, update, delete, and organise tasks with hierarchical subtasks
 - **Label System**: Categorise tasks with custom labels and colours for better organisation
 - **Dependency Logic**: Define task dependencies with cycle detection and validation
 - **Smart Scheduling**: Deterministic scheduling algorithm that respects dependencies and working hours
+- **Recurring Tasks**: Create tasks that automatically regenerate based on configurable patterns
+- **Task Audit Trail**: Complete history of all task changes for analytics and compliance
+- **Task Ordering**: Intelligent algorithm to determine optimal task execution order
+- **Analytics**: Comprehensive task analytics and status change tracking
 - **Agent-Friendly API**: RESTful API designed for LLM/agent integration
 - **Modern UI**: Beautiful, responsive interface built with Next.js and Tailwind CSS
 - **Real-time Updates**: Live task status updates and dependency management
@@ -69,6 +73,26 @@ interface Task {
   taskLabels?: TaskLabel[];             // Associated labels
   createdAt: Date;                      // Creation timestamp
   updatedAt: Date;                      // Last update timestamp
+  
+  // Recurring task fields
+  isRecurring: boolean;                 // Whether this is a recurring task
+  recurrencePattern?: string;           // JSON string for recurrence configuration
+  nextRecurrenceDate?: Date;            // Next occurrence date
+  originalTaskId?: string;              // Reference to original recurring task
+}
+```
+
+### Recurrence Pattern
+
+```typescript
+interface RecurrencePattern {
+  type: RecurrenceType;                 // Daily | Weekly | Monthly | Yearly | Custom
+  interval: number;                     // Every X days/weeks/months/years
+  startDate: Date;                      // When recurrence starts
+  endDate?: Date;                       // Optional end date
+  daysOfWeek?: number[];                // For weekly: 0=Sunday, 1=Monday, etc.
+  dayOfMonth?: number;                  // For monthly: 1-31
+  customPattern?: string;               // For custom patterns
 }
 ```
 
@@ -104,6 +128,19 @@ interface Dependency {
 }
 ```
 
+### Task Audit Entity
+
+```typescript
+interface TaskAudit {
+  id: string;              // Unique identifier
+  taskId: string;          // Associated task
+  fieldName: string;       // Field that changed (e.g., 'status', 'priority', 'title')
+  oldValue?: string;       // Previous value
+  newValue?: string;       // New value
+  changedAt: Date;         // When the change occurred
+}
+```
+
 ## 🧠 Business Rules
 
 ### Task Hierarchy
@@ -126,6 +163,18 @@ interface Dependency {
   - Returns 409 error if `allowParentAutoComplete = false`
   - Auto-completes children if `allowParentAutoComplete = true`
 - Only completed tasks can be reopened
+
+### Recurring Tasks
+- Recurring tasks automatically generate new instances based on their pattern
+- When a recurring task is completed, a new instance is created for the next occurrence
+- Recurring tasks maintain their original configuration and dependencies
+- The `originalTaskId` links all instances of a recurring task together
+
+### Audit Trail
+- All task field changes are automatically logged in the audit trail
+- Audit entries include the field name, old value, new value, and timestamp
+- Audit data is used for analytics and compliance purposes
+- Audit entries cannot be modified or deleted
 
 ## ⏰ Scheduling Algorithm
 
@@ -272,6 +321,8 @@ npm run cli complete clm123456 --force-parent-auto-complete
 - `GET /api/tasks/:id` - Get task details
 - `PATCH /api/tasks/:id` - Update task
 - `DELETE /api/tasks/:id` - Delete task
+- `GET /api/tasks/analytics` - Get task analytics and summaries
+- `POST /api/tasks/order` - Get ordered list of tasks based on priority algorithm
 
 #### Labels
 - `POST /api/labels` - Create label
@@ -300,6 +351,41 @@ npm run cli complete clm123456 --force-parent-auto-complete
 - `GET /api/tasks/export` - Export tasks
 
 ### Example API Calls
+
+#### Create Recurring Task
+```bash
+curl -X POST http://localhost:3001/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Weekly team meeting",
+    "description": "Regular team sync",
+    "priority": "High",
+    "isRecurring": true,
+    "recurrencePattern": {
+      "type": "Weekly",
+      "interval": 1,
+      "startDate": "2024-01-15T09:00:00Z",
+      "daysOfWeek": [1]
+    }
+  }'
+```
+
+#### Get Task Analytics
+```bash
+curl -X GET "http://localhost:3001/api/tasks/analytics?date=2024-01-15&daysToLookBack=7"
+```
+
+#### Order Tasks by Priority
+```bash
+curl -X POST http://localhost:3001/api/tasks/order \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filter": {
+      "status": "Todo",
+      "priority": "High"
+    }
+  }'
+```
 
 #### Create Task
 ```bash
@@ -345,12 +431,27 @@ The API is designed to be agent-friendly with:
 - **Comprehensive Error Codes**: Detailed error information for debugging
 - **Bulk Operations**: Import/export capabilities for batch processing
 - **Deterministic Scheduling**: Predictable scheduling algorithm
+- **Task Ordering**: Intelligent algorithm for optimal task execution order
+- **Analytics**: Rich data for monitoring and decision-making
+- **Recurring Tasks**: Automated task generation for regular activities
+- **Audit Trail**: Complete change history for compliance and analysis
 - **OpenAPI Documentation**: Machine-readable API specification
 
 ### Example Agent Workflow
 
 ```typescript
-// 1. Create tasks
+// 1. Create recurring tasks
+const recurringTask = await api.post('/tasks', {
+  title: "Daily standup",
+  isRecurring: true,
+  recurrencePattern: {
+    type: "Daily",
+    interval: 1,
+    startDate: new Date()
+  }
+});
+
+// 2. Create dependent tasks
 const tasks = await api.post('/tasks/bulkImport', {
   tasks: [
     { title: "Setup project", priority: "High" },
@@ -359,13 +460,19 @@ const tasks = await api.post('/tasks/bulkImport', {
   ]
 });
 
-// 2. Plan schedule
+// 3. Get optimal task order
+const order = await api.post('/tasks/order', {
+  filter: { status: "Todo" }
+});
+
+// 4. Plan schedule
 const schedule = await api.post('/schedule/plan', {
   workingHours: { start: "09:00", end: "17:30" },
   dailyCapacity: 480
 });
 
-// 3. Monitor progress
+// 5. Monitor progress and analytics
+const analytics = await api.get('/tasks/analytics?daysToLookBack=7');
 const progress = await api.get('/tasks?status=InProgress');
 ```
 
