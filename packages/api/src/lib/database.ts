@@ -16,6 +16,20 @@ export async function connectDatabase(): Promise<void> {
   try {
     await prisma.$connect();
     console.log('✅ Database connected successfully');
+    
+    // Run migrations if needed
+    try {
+      const { execSync } = require('child_process');
+      console.log('🔄 Running database migrations...');
+      execSync('npx prisma migrate deploy', { 
+        stdio: 'inherit',
+        env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL }
+      });
+      console.log('✅ Database migrations completed successfully');
+    } catch (migrationError) {
+      console.error('❌ Failed to run migrations:', migrationError);
+      // Don't exit here, as the app might still work with existing schema
+    }
   } catch (error) {
     console.error('❌ Failed to connect to database:', error);
     process.exit(1);
