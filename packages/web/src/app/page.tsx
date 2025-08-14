@@ -101,11 +101,11 @@ export default function HomePage() {
     fetchTasks(1, false);
   }, []); // Empty dependency array - only run on mount
 
-  // Effect to refetch when filters change
+  // Effect to refetch when filters change - use filters directly instead of fetchTasks
   useEffect(() => {
     // Reset to page 1 when filters change
     fetchTasks(1, false);
-  }, [fetchTasks]); // Depend on fetchTasks which now includes filters
+  }, [filters]); // Depend on filters directly, not fetchTasks
 
   const loadMore = useCallback(() => {
     if (hasMore && !loadingMore) {
