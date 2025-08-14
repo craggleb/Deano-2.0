@@ -1157,8 +1157,13 @@ export class TaskService {
 
     const now = new Date();
 
-    // Get all tasks for ordering algorithm
+    // Get all non-completed tasks for ordering algorithm
     const tasks = await prisma.task.findMany({
+      where: {
+        status: {
+          notIn: ['Completed']
+        }
+      },
       orderBy: [
         { priority: 'desc' },
         { dueAt: 'asc' },
