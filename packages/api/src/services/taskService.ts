@@ -271,7 +271,7 @@ export class TaskService {
     limit: number;
     totalPages: number;
   }> {
-    const { page = 1, limit = 20, ...restFilter } = filter;
+    const { page = 1, limit = 200, ...restFilter } = filter;
     const skip = (page - 1) * limit;
 
     const where: any = {};
@@ -300,6 +300,61 @@ export class TaskService {
           }
         }
       };
+    }
+
+    // Handle date range filtering
+    if (restFilter.dateRange) {
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      
+      switch (restFilter.dateRange) {
+        case 'today':
+          where.dueAt = {
+            gte: startOfDay,
+            lte: endOfDay,
+          };
+          break;
+        case 'overdue':
+          where.dueAt = {
+            lt: startOfDay,
+          };
+          break;
+        case 'thisWeek':
+          const startOfWeek = new Date(now);
+          startOfWeek.setDate(now.getDate() - now.getDay());
+          startOfWeek.setHours(0, 0, 0, 0);
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 6);
+          endOfWeek.setHours(23, 59, 59, 999);
+          where.dueAt = {
+            gte: startOfWeek,
+            lte: endOfWeek,
+          };
+          break;
+        case 'thisMonth':
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+          where.dueAt = {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          };
+          break;
+        case 'custom':
+          if (restFilter.startDate) {
+            where.dueAt = {
+              ...where.dueAt,
+              gte: new Date(restFilter.startDate),
+            };
+          }
+          if (restFilter.endDate) {
+            where.dueAt = {
+              ...where.dueAt,
+              lte: new Date(restFilter.endDate),
+            };
+          }
+          break;
+      }
     }
 
     const [tasks, total] = await Promise.all([

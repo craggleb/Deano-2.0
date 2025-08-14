@@ -134,7 +134,7 @@ export const taskFilterSchema = z.object({
   parentId: z.string().cuid().nullable().optional().or(z.literal('')).transform(val => val === '' ? null : val),
   q: z.string().optional(),
   page: z.number().int().min(1).optional().default(1),
-  limit: z.number().int().min(1).max(100).optional().default(20),
+  limit: z.number().int().min(1).max(200).optional().default(200),
 });
 
 // Dependency schemas
@@ -253,7 +253,10 @@ export const taskQuerySchema = z.object({
   limit: z.union([
     z.string().transform(val => parseInt(val, 10)),
     z.number()
-  ]).pipe(z.number().int().min(1).max(100)).optional().default(20),
+  ]).pipe(z.number().int().min(1).max(200)).optional().default(200),
+  dateRange: z.enum(['today', 'overdue', 'thisWeek', 'thisMonth', 'custom']).optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 });
 
 export const exportQuerySchema = z.object({
