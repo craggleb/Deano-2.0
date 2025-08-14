@@ -1,5 +1,6 @@
 export type TaskStatus = 'Todo' | 'InProgress' | 'Blocked' | 'Completed' | 'Canceled';
 export type Priority = 'Low' | 'Medium' | 'High';
+export type RecurrenceType = 'Daily' | 'Weekly' | 'Monthly' | 'Yearly' | 'Custom';
 
 export interface Label {
   id: string;
@@ -21,6 +22,16 @@ export interface TaskLabel {
   label: Label;
 }
 
+export interface RecurrencePattern {
+  type: RecurrenceType;
+  interval: number;
+  startDate: string;
+  endDate?: string;
+  daysOfWeek?: number[];
+  dayOfMonth?: number;
+  customPattern?: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -35,6 +46,11 @@ export interface Task {
   scheduledEnd?: string;
   createdAt: string;
   updatedAt: string;
+  // Recurring task fields
+  isRecurring: boolean;
+  recurrencePattern?: string;
+  nextRecurrenceDate?: string;
+  originalTaskId?: string;
   children?: Task[];
   parent?: Task | null;
   dependencies?: DependencyWithTask[];
@@ -62,6 +78,10 @@ export interface CreateTaskInput {
   parentId?: string;
   dependencies?: string[];
   labelIds?: string[];
+  // Recurring task fields
+  isRecurring?: boolean;
+  recurrencePattern?: RecurrencePattern;
+  originalTaskId?: string;
 }
 
 export interface UpdateTaskInput {
@@ -74,6 +94,10 @@ export interface UpdateTaskInput {
   allowParentAutoComplete?: boolean;
   parentId?: string | null;
   labelIds?: string[];
+  // Recurring task fields
+  isRecurring?: boolean;
+  recurrencePattern?: RecurrencePattern | null;
+  originalTaskId?: string;
 }
 
 export interface CreateLabelInput {

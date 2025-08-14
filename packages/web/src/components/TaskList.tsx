@@ -22,6 +22,7 @@ import EditTaskModal from './EditTaskModal';
 import SubtaskManager from './SubtaskManager';
 import DependencyManager from './DependencyManager';
 import TaskLabels from './TaskLabels';
+import RecurringTaskBadge from './RecurringTaskBadge';
 
 interface TaskListProps {
   tasks: Task[];
@@ -309,6 +310,9 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
 
                     {/* Task Labels */}
                     <TaskLabels taskLabels={task.taskLabels} className="mb-2" />
+
+                    {/* Recurring Task Badge */}
+                    <RecurringTaskBadge task={task} />
 
                     <div className="flex items-center space-x-4 text-xs text-gray-500">
                       {task.dueAt && (

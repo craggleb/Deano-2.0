@@ -9,11 +9,14 @@ import {
   BusinessRuleError,
   DependencyCycleError,
   ValidationError,
-  Priority
+  Priority,
+  RecurrencePattern,
+  RecurrenceType,
+  TaskStatus
 } from '../types';
 import { LabelService } from './labelService';
 
-import { addMinutes, addDays, startOfDay, isBefore, isAfter } from 'date-fns';
+import { addMinutes, addDays, startOfDay, isBefore, isAfter, addWeeks, addMonths, addYears } from 'date-fns';
 
 export class TaskService {
   private labelService: LabelService;
@@ -24,19 +27,29 @@ export class TaskService {
 
   // Task CRUD operations
   async createTask(input: CreateTaskInput): Promise<TaskWithRelations> {
-    const { labelIds, ...taskData } = input;
+    const { labelIds, recurrencePattern, ...taskData } = input;
+    
+    // Handle recurring task fields
+    const createData: any = {
+      title: taskData.title,
+      description: taskData.description,
+      status: taskData.status || 'Todo',
+      priority: taskData.priority || 'Medium',
+      dueAt: taskData.dueAt,
+      estimatedDurationMinutes: taskData.estimatedDurationMinutes || 30,
+      allowParentAutoComplete: taskData.allowParentAutoComplete || false,
+      parentId: taskData.parentId,
+      isRecurring: taskData.isRecurring || false,
+    };
+    
+    if (recurrencePattern) {
+      createData.recurrencePattern = JSON.stringify(recurrencePattern);
+      // Calculate next recurrence date
+      createData.nextRecurrenceDate = this.calculateNextRecurrenceDate(recurrencePattern, taskData.dueAt || new Date());
+    }
     
     const task = await prisma.task.create({
-      data: {
-        title: taskData.title,
-        description: taskData.description,
-        status: taskData.status || 'Todo',
-        priority: taskData.priority || 'Medium',
-        dueAt: taskData.dueAt,
-        estimatedDurationMinutes: taskData.estimatedDurationMinutes || 30,
-        allowParentAutoComplete: taskData.allowParentAutoComplete || false,
-        parentId: taskData.parentId,
-      },
+      data: createData,
       include: {
         children: true,
         parent: true,
@@ -97,7 +110,18 @@ export class TaskService {
       }
     }
 
-    const { labelIds, ...taskData } = input;
+    const { labelIds, recurrencePattern, ...taskData } = input;
+
+    // Handle recurring task fields
+    const updateData: any = { ...taskData };
+    
+    if (input.isRecurring !== undefined) {
+      updateData.isRecurring = input.isRecurring;
+    }
+    
+    if (recurrencePattern !== undefined) {
+      updateData.recurrencePattern = recurrencePattern ? JSON.stringify(recurrencePattern) : null;
+    }
 
     // Track status changes for analytics
     const auditEntries: Array<{ fieldName: string; oldValue: string | null; newValue: string | null }> = [];
@@ -128,7 +152,7 @@ export class TaskService {
 
     await prisma.task.update({
       where: { id },
-      data: taskData,
+      data: updateData,
     });
 
     // Create audit entries for tracked changes
@@ -485,8 +509,29 @@ export class TaskService {
             dependentTask: true,
           },
         },
+        taskLabels: {
+          include: {
+            label: true,
+          },
+        },
       },
     });
+
+    // Handle recurring task logic
+    if (updatedTask.isRecurring && updatedTask.recurrencePattern) {
+      try {
+        const pattern: RecurrencePattern = JSON.parse(updatedTask.recurrencePattern);
+        const nextDueDate = this.calculateNextValidRecurrenceDate(pattern, updatedTask.dueAt || new Date());
+
+        // Check if we've reached the end date
+        if (!pattern.endDate || isBefore(nextDueDate, pattern.endDate)) {
+          // Create the next occurrence
+          await this.createNextRecurrence(updatedTask as TaskWithRelations);
+        }
+      } catch (error) {
+        console.error('Error handling recurring task completion:', error);
+      }
+    }
 
     return updatedTask as TaskWithRelations;
   }
@@ -1438,5 +1483,80 @@ export class TaskService {
     }
     
     return path;
+  }
+
+  // Recurring task methods
+  private calculateNextRecurrenceDate(pattern: RecurrencePattern, currentDate: Date): Date {
+    const { type, interval } = pattern;
+    let nextDate = new Date(currentDate);
+
+    switch (type) {
+      case RecurrenceType.Daily:
+        nextDate = addDays(currentDate, interval);
+        break;
+      case RecurrenceType.Weekly:
+        nextDate = addWeeks(currentDate, interval);
+        break;
+      case RecurrenceType.Monthly:
+        nextDate = addMonths(currentDate, interval);
+        break;
+      case RecurrenceType.Yearly:
+        nextDate = addYears(currentDate, interval);
+        break;
+      case RecurrenceType.Custom:
+        // For custom patterns, we'll use a simple daily interval for now
+        nextDate = addDays(currentDate, interval);
+        break;
+    }
+
+    return nextDate;
+  }
+
+  private calculateNextValidRecurrenceDate(pattern: RecurrencePattern, fromDate: Date): Date {
+    const today = startOfDay(new Date());
+    let nextDate = this.calculateNextRecurrenceDate(pattern, fromDate);
+
+    // If the next recurrence would be overdue, keep calculating until we find a valid date
+    while (isBefore(nextDate, today)) {
+      nextDate = this.calculateNextRecurrenceDate(pattern, nextDate);
+    }
+
+    return nextDate;
+  }
+
+  private async createNextRecurrence(task: TaskWithRelations): Promise<TaskWithRelations | null> {
+    if (!task.isRecurring || !task.recurrencePattern) {
+      return null;
+    }
+
+    try {
+      const pattern: RecurrencePattern = JSON.parse(task.recurrencePattern);
+      const nextDueDate = this.calculateNextValidRecurrenceDate(pattern, task.dueAt || new Date());
+
+      // Check if we've reached the end date
+      if (pattern.endDate && isAfter(nextDueDate, pattern.endDate)) {
+        return null;
+      }
+
+      // Create the next occurrence
+      const nextTask = await this.createTask({
+        title: task.title,
+        description: task.description || undefined,
+        status: TaskStatus.Todo,
+        priority: task.priority,
+        dueAt: nextDueDate,
+        estimatedDurationMinutes: task.estimatedDurationMinutes,
+        allowParentAutoComplete: task.allowParentAutoComplete,
+        parentId: task.parentId || undefined,
+        isRecurring: true,
+        recurrencePattern: pattern,
+        originalTaskId: task.originalTaskId || task.id,
+      });
+
+      return nextTask;
+    } catch (error) {
+      console.error('Error creating next recurrence:', error);
+      return null;
+    }
   }
 }

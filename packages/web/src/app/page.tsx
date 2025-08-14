@@ -10,6 +10,7 @@ import { Task, TaskStatus, Priority } from '@/types';
 export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCompletedTasks, setShowCompletedTasks] = useState(true);
@@ -22,15 +23,29 @@ export default function HomePage() {
     labelIds: [] as string[],
   });
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalTasks, setTotalTasks] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  
   // Add refs for scroll position preservation
   const scrollPositionRef = useRef<number>(0);
   const isUpdatingRef = useRef<boolean>(false);
+  const currentPageRef = useRef<number>(1);
 
-  const fetchTasks = useCallback(async () => {
+  const fetchTasks = useCallback(async (page = 1, append = false) => {
     try {
-      setLoading(true);
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
       setError(null);
+      
       const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('limit', '20'); // Default page size
       if (filters.status) params.append('status', filters.status);
       if (filters.priority) params.append('priority', filters.priority);
       if (filters.q) params.append('q', filters.q);
@@ -45,22 +60,52 @@ export default function HomePage() {
       const data = await response.json();
 
       if (data.data) {
-        setTasks(data.data);
+        if (append) {
+          setTasks(prev => [...prev, ...data.data]);
+        } else {
+          setTasks(data.data);
+        }
+        
+        // Update pagination info
+        setTotalTasks(data.pagination.total);
+        setTotalPages(data.pagination.totalPages);
+        setHasMore(data.pagination.page < data.pagination.totalPages);
+        setCurrentPage(data.pagination.page);
+        currentPageRef.current = data.pagination.page;
       } else {
-        setTasks([]);
+        if (!append) {
+          setTasks([]);
+        }
+        setHasMore(false);
       }
     } catch (error) {
       console.error('Error fetching tasks:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch tasks');
-      setTasks([]);
+      if (!append) {
+        setTasks([]);
+      }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [filters]);
+  }, []); // Remove filters dependency to prevent unnecessary re-renders
 
+  // Initial load effect - only run once on mount
   useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+    fetchTasks(1, false);
+  }, []); // Empty dependency array - only run on mount
+
+  // Effect to refetch when filters change
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    fetchTasks(1, false);
+  }, [filters]); // Only depend on filters, not fetchTasks
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !loadingMore) {
+      fetchTasks(currentPageRef.current + 1, true);
+    }
+  }, [hasMore, loadingMore]); // Remove currentPage dependency since we use ref
 
   // Effect to restore scroll position after state updates
   useEffect(() => {
@@ -108,7 +153,8 @@ export default function HomePage() {
       }
 
       setShowCreateModal(false);
-      fetchTasks();
+      // Reset to page 1 when creating new tasks
+      fetchTasks(1, false);
     } catch (error) {
       console.error('Error creating task:', error);
       throw error; // Re-throw to let the modal handle it
@@ -119,8 +165,11 @@ export default function HomePage() {
     // Save current scroll position before updating
     scrollPositionRef.current = window.scrollY;
     isUpdatingRef.current = true;
-    fetchTasks();
-  }, [fetchTasks]);
+    
+    // Always refresh the current page to see updated tasks
+    // This ensures we see the current state of tasks on this page
+    fetchTasks(currentPageRef.current, false);
+  }, []); // No dependencies needed since we use refs
 
   const _getStatusIcon = (status: TaskStatus) => {
     switch (status) {
@@ -458,7 +507,7 @@ export default function HomePage() {
                   <h3 className="text-sm font-medium text-danger-800">Connection Error</h3>
                   <p className="text-sm text-danger-700 mt-1">{error}</p>
                   <button
-                    onClick={fetchTasks}
+                    onClick={() => fetchTasks(1, false)}
                     className="mt-2 text-sm text-danger-600 hover:text-danger-800 underline"
                   >
                     Try again
@@ -475,6 +524,38 @@ export default function HomePage() {
           loading={loading}
           onTaskUpdate={handleTaskUpdate}
         />
+
+        {/* Load More Button */}
+        {hasMore && (
+          <div className="card mt-4">
+            <div className="card-content">
+              <div className="flex justify-center">
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="btn btn-secondary"
+                >
+                  {loadingMore ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Loading...
+                    </>
+                  ) : (
+                    'Load More Tasks'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Pagination Info */}
+        {totalTasks > 0 && (
+          <div className="text-center text-sm text-gray-600 mt-4">
+            Showing {tasks.length} of {totalTasks} tasks
+            {totalPages > 1 && ` (Page ${currentPage} of ${totalPages})`}
+          </div>
+        )}
       </div>
 
       {/* Create Task Modal */}

@@ -1,9 +1,59 @@
 import { z } from 'zod';
-import { TaskStatus, Priority } from '../types';
+import { TaskStatus, Priority, RecurrenceType } from '../types';
 
 // Base schemas
 export const taskStatusSchema = z.nativeEnum(TaskStatus);
 export const prioritySchema = z.nativeEnum(Priority);
+
+// Recurring task schemas
+export const recurrenceTypeSchema = z.nativeEnum(RecurrenceType);
+
+export const recurrencePatternSchema = z.object({
+  type: recurrenceTypeSchema,
+  interval: z.number().int().min(1),
+  startDate: z.string().transform((val, ctx) => {
+    try {
+      const date = new Date(val);
+      if (isNaN(date.getTime())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Invalid start date format.',
+        });
+        return z.NEVER;
+      }
+      return date;
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid start date format.',
+      });
+      return z.NEVER;
+    }
+  }),
+  endDate: z.string().optional().transform((val, ctx) => {
+    if (!val) return undefined;
+    try {
+      const date = new Date(val);
+      if (isNaN(date.getTime())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Invalid end date format.',
+        });
+        return z.NEVER;
+      }
+      return date;
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid end date format.',
+      });
+      return z.NEVER;
+    }
+  }),
+  daysOfWeek: z.array(z.number().int().min(0).max(6)).optional(), // 0=Sunday, 1=Monday, etc.
+  dayOfMonth: z.number().int().min(1).max(31).optional(),
+  customPattern: z.string().optional(),
+});
 
 // Task schemas
 export const createTaskSchema = z.object({
@@ -36,6 +86,10 @@ export const createTaskSchema = z.object({
   allowParentAutoComplete: z.boolean().optional().default(false),
   parentId: z.string().cuid().optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
   labelIds: z.array(z.string().cuid()).optional(),
+  // Recurring task fields
+  isRecurring: z.boolean().optional().default(false),
+  recurrencePattern: recurrencePatternSchema.optional(),
+  originalTaskId: z.string().cuid().optional(),
 });
 
 export const updateTaskSchema = z.object({
@@ -68,6 +122,10 @@ export const updateTaskSchema = z.object({
   allowParentAutoComplete: z.boolean().optional(),
   parentId: z.string().cuid().nullable().optional().or(z.literal('')).transform(val => val === '' ? null : val),
   labelIds: z.array(z.string().cuid()).optional(),
+  // Recurring task fields
+  isRecurring: z.boolean().optional(),
+  recurrencePattern: recurrencePatternSchema.nullable().optional(),
+  originalTaskId: z.string().cuid().optional(),
 });
 
 export const taskFilterSchema = z.object({

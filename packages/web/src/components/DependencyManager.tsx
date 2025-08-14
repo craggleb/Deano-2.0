@@ -54,7 +54,7 @@ export default function DependencyManager({ task, onTaskUpdate, isExpanded = fal
 
   const fetchAllTasks = async () => {
     try {
-      const response = await fetch('/api/tasks');
+      const response = await fetch('/api/tasks?limit=50');
       
       if (!response.ok) {
         throw new Error(`Failed to fetch tasks: ${response.status} ${response.statusText}`);

@@ -5,9 +5,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Clock, AlertTriangle } from 'lucide-react';
-import { TaskStatus, Priority, CreateTaskInput, Task } from '@/types';
+import { TaskStatus, Priority, CreateTaskInput, Task, RecurrencePattern } from '@/types';
 import DateTimePicker from './DateTimePicker';
 import LabelManager from './LabelManager';
+import RecurrencePatternSelector from './RecurrencePatternSelector';
 
 const createTaskSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(200, 'Title must be less than 200 characters'),
@@ -27,6 +28,17 @@ const createTaskSchema = z.object({
   allowParentAutoComplete: z.boolean().default(false),
   parentId: z.string().optional(),
   dependencies: z.array(z.string()).default([]),
+  // Recurring task fields
+  isRecurring: z.boolean().default(false),
+  recurrencePattern: z.object({
+    type: z.enum(['Daily', 'Weekly', 'Monthly', 'Yearly', 'Custom']),
+    interval: z.number().min(1),
+    startDate: z.string(),
+    endDate: z.string().optional(),
+    daysOfWeek: z.array(z.number()).optional(),
+    dayOfMonth: z.number().optional(),
+    customPattern: z.string().optional(),
+  }).optional(),
 });
 
 type CreateTaskFormData = z.infer<typeof createTaskSchema>;
@@ -47,6 +59,7 @@ export default function CreateTaskModal({ onClose, onSubmit, parentTaskId }: Cre
   const [selectedDependencies, setSelectedDependencies] = useState<string[]>([]);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [parentSearchQuery, setParentSearchQuery] = useState('');
+  const [recurrencePattern, setRecurrencePattern] = useState<RecurrencePattern | null>(null);
 
   // Get tomorrow's date in datetime-local format
   const getTomorrowDateTime = () => {
@@ -98,7 +111,7 @@ export default function CreateTaskModal({ onClose, onSubmit, parentTaskId }: Cre
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        const response = await fetch('/api/tasks');
+        const response = await fetch('/api/tasks?limit=50');
         if (response.ok) {
           const data = await response.json();
           const tasks = data.data || [];
@@ -152,11 +165,15 @@ export default function CreateTaskModal({ onClose, onSubmit, parentTaskId }: Cre
         ...data,
         dependencies: selectedDependencies,
         labelIds: selectedLabels,
+        // Add recurring task data
+        isRecurring: !!recurrencePattern,
+        recurrencePattern: recurrencePattern || undefined,
       };
       await onSubmit(taskData);
       reset();
       setSelectedDependencies([]);
       setParentSearchQuery('');
+      setRecurrencePattern(null);
       onClose();
     } catch (error) {
       console.error('Error creating task:', error);
@@ -406,6 +423,13 @@ export default function CreateTaskModal({ onClose, onSubmit, parentTaskId }: Cre
               showCreateButton={false}
             />
           </div>
+
+          {/* Recurrence Pattern */}
+          <RecurrencePatternSelector
+            value={recurrencePattern}
+            onChange={setRecurrencePattern}
+            startDate={watch('dueAt')}
+          />
 
           {/* Allow Parent Auto Complete */}
           <div className="flex items-start space-x-3 p-4 bg-gray-50 rounded-lg">
