@@ -16,7 +16,7 @@ import {
 } from '../types';
 import { LabelService } from './labelService';
 
-import { addMinutes, addDays, startOfDay, isBefore, isAfter, addWeeks, addMonths, addYears } from 'date-fns';
+import { addMinutes, addDays, startOfDay, isBefore, isAfter, addWeeks, addMonths, addYears, parseISO } from 'date-fns';
 
 export class TaskService {
   private labelService: LabelService;
@@ -40,6 +40,7 @@ export class TaskService {
       allowParentAutoComplete: taskData.allowParentAutoComplete || false,
       parentId: taskData.parentId,
       isRecurring: taskData.isRecurring || false,
+      originalTaskId: taskData.originalTaskId,
     };
     
     if (recurrencePattern) {
@@ -579,7 +580,13 @@ export class TaskService {
         const nextDueDate = this.calculateNextValidRecurrenceDate(pattern, updatedTask.dueAt || new Date());
 
         // Check if we've reached the end date
-        if (!pattern.endDate || isBefore(nextDueDate, pattern.endDate)) {
+        if (pattern.endDate) {
+          const endDate = typeof pattern.endDate === 'string' ? parseISO(pattern.endDate) : pattern.endDate;
+          if (isBefore(nextDueDate, endDate)) {
+            // Create the next occurrence
+            await this.createNextRecurrence(updatedTask as TaskWithRelations);
+          }
+        } else {
           // Create the next occurrence
           await this.createNextRecurrence(updatedTask as TaskWithRelations);
         }
@@ -1591,11 +1598,20 @@ export class TaskService {
 
     try {
       const pattern: RecurrencePattern = JSON.parse(task.recurrencePattern);
+      
+      // Convert endDate from string to Date if it exists
+      if (pattern.endDate && typeof pattern.endDate === 'string') {
+        pattern.endDate = new Date(pattern.endDate);
+      }
+      
       const nextDueDate = this.calculateNextValidRecurrenceDate(pattern, task.dueAt || new Date());
 
       // Check if we've reached the end date
-      if (pattern.endDate && isAfter(nextDueDate, pattern.endDate)) {
-        return null;
+      if (pattern.endDate) {
+        const endDate = typeof pattern.endDate === 'string' ? parseISO(pattern.endDate) : pattern.endDate;
+        if (isAfter(nextDueDate, endDate)) {
+          return null;
+        }
       }
 
       // Create the next occurrence
