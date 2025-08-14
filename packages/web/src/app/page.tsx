@@ -14,6 +14,7 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCompletedTasks, setShowCompletedTasks] = useState(true);
+  const [hideSubtasks, setHideSubtasks] = useState(false);
   const [sortBy, setSortBy] = useState('dueAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filters, setFilters] = useState({
@@ -179,9 +180,12 @@ export default function HomePage() {
 
 
 
-  // Filter tasks based on showCompletedTasks setting
+  // Filter tasks based on showCompletedTasks and hideSubtasks settings
   const filteredTasks = tasks.filter(task => {
     if (!showCompletedTasks && task.status === 'Completed') {
+      return false;
+    }
+    if (hideSubtasks && task.parentId) {
       return false;
     }
     return true;
@@ -513,6 +517,13 @@ export default function HomePage() {
                   >
                     {showCompletedTasks ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
                     {showCompletedTasks ? 'Hide Completed' : 'Show All'}
+                  </button>
+                  <button
+                    onClick={() => setHideSubtasks(!hideSubtasks)}
+                    className={`btn btn-sm ${hideSubtasks ? 'btn-primary' : 'btn-secondary'}`}
+                  >
+                    {hideSubtasks ? <Eye className="w-4 h-4 mr-1" /> : <EyeOff className="w-4 h-4 mr-1" />}
+                    {hideSubtasks ? 'Show Subtasks' : 'Hide Subtasks'}
                   </button>
                 </div>
               </div>
