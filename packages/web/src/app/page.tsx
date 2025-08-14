@@ -5,7 +5,7 @@ import { Plus, Search, Calendar, Clock, AlertTriangle, CheckCircle, Circle, Eye,
 import TaskList from '@/components/TaskList';
 import CreateTaskModal from '@/components/CreateTaskModal';
 import LabelMultiSelect from '@/components/LabelMultiSelect';
-import { Task, TaskStatus, Priority } from '@/types';
+import { Task } from '@/types';
 
 export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -177,48 +177,7 @@ export default function HomePage() {
     fetchTasks(currentPageRef.current, false);
   }, []); // No dependencies needed since we use refs
 
-  const _getStatusIcon = (status: TaskStatus) => {
-    switch (status) {
-      case 'Completed':
-        return <CheckCircle className="w-4 h-4 text-success-600" />;
-      case 'InProgress':
-        return <Clock className="w-4 h-4 text-primary-600" />;
-      case 'Blocked':
-        return <AlertTriangle className="w-4 h-4 text-danger-600" />;
-      default:
-        return <Circle className="w-4 h-4 text-gray-400" />;
-    }
-  };
 
-  const _getPriorityColor = (priority: Priority) => {
-    switch (priority) {
-      case 'High':
-        return 'priority-high';
-      case 'Medium':
-        return 'priority-medium';
-      case 'Low':
-        return 'priority-low';
-      default:
-        return 'priority-medium';
-    }
-  };
-
-  const _getStatusColor = (status: TaskStatus) => {
-    switch (status) {
-      case 'Todo':
-        return 'status-todo';
-      case 'InProgress':
-        return 'status-inprogress';
-      case 'Blocked':
-        return 'status-blocked';
-      case 'Completed':
-        return 'status-completed';
-      case 'Canceled':
-        return 'status-canceled';
-      default:
-        return 'status-todo';
-    }
-  };
 
   // Filter tasks based on showCompletedTasks setting
   const filteredTasks = tasks.filter(task => {
@@ -552,8 +511,8 @@ export default function HomePage() {
                     onClick={() => setShowCompletedTasks(!showCompletedTasks)}
                     className={`btn btn-sm ${showCompletedTasks ? 'btn-primary' : 'btn-secondary'}`}
                   >
-                    {showCompletedTasks ? <Eye className="w-4 h-4 mr-1" /> : <EyeOff className="w-4 h-4 mr-1" />}
-                    {showCompletedTasks ? 'Show All' : 'Hide Completed'}
+                    {showCompletedTasks ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
+                    {showCompletedTasks ? 'Hide Completed' : 'Show All'}
                   </button>
                 </div>
               </div>

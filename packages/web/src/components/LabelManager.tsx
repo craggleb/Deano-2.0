@@ -8,13 +8,15 @@ interface LabelManagerProps {
   onLabelsChange?: (labelIds: string[]) => void;
   showCreateButton?: boolean;
   showHeader?: boolean;
+  showEditButtons?: boolean;
 }
 
 export default function LabelManager({ 
   selectedLabels = [], 
   onLabelsChange,
   showCreateButton = true,
-  showHeader = true
+  showHeader = true,
+  showEditButtons = true
 }: LabelManagerProps) {
   const [labels, setLabels] = useState<Label[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -163,20 +165,22 @@ export default function LabelManager({
                 />
               )}
             </div>
-            <div className="flex space-x-1">
-              <button
-                onClick={() => openEditModal(label)}
-                className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleDeleteLabel(label.id)}
-                className="px-2 py-1 text-xs bg-red-200 text-red-700 rounded hover:bg-red-300"
-              >
-                Delete
-              </button>
-            </div>
+            {showEditButtons && (
+              <div className="flex space-x-1">
+                <button
+                  onClick={() => openEditModal(label)}
+                  className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDeleteLabel(label.id)}
+                  className="px-2 py-1 text-xs bg-red-200 text-red-700 rounded hover:bg-red-300"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>

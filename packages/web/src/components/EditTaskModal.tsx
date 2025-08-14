@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Clock, AlertTriangle } from 'lucide-react';
-import { Task, TaskStatus, Priority, UpdateTaskInput, RecurrencePattern } from '@/types';
+import { Task, UpdateTaskInput, RecurrencePattern } from '@/types';
 import DateTimePicker from './DateTimePicker';
 import LabelManager from './LabelManager';
 import RecurrencePatternSelector from './RecurrencePatternSelector';
@@ -69,7 +69,6 @@ export default function EditTaskModal({ task, onClose, onSubmit, onDelete }: Edi
     register,
     handleSubmit,
     formState: { errors },
-    reset,
     setValue,
     watch,
   } = useForm<UpdateTaskFormData>({
@@ -245,6 +244,7 @@ export default function EditTaskModal({ task, onClose, onSubmit, onDelete }: Edi
               onLabelsChange={setSelectedLabels}
               showCreateButton={false}
               showHeader={false}
+              showEditButtons={false}
             />
           </div>
 
