@@ -20,9 +20,8 @@ describe('CreateTaskModal', () => {
   it('should render modal with form fields', () => {
     render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -34,25 +33,23 @@ describe('CreateTaskModal', () => {
     expect(screen.getByLabelText(/allow parent auto-complete/i)).toBeInTheDocument();
   });
 
-  it('should not render when isOpen is false', () => {
+  it('should render modal when component is mounted', () => {
     render(
       <CreateTaskModal
-        isOpen={false}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
-    expect(screen.queryByText('Create New Task')).not.toBeInTheDocument();
+    expect(screen.getByText('Create New Task')).toBeInTheDocument();
   });
 
   it('should close modal when close button is clicked', async () => {
     const user = userEvent.setup();
     render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -66,9 +63,8 @@ describe('CreateTaskModal', () => {
     const user = userEvent.setup();
     render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -82,9 +78,8 @@ describe('CreateTaskModal', () => {
     const user = userEvent.setup();
     render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -101,9 +96,8 @@ describe('CreateTaskModal', () => {
     const user = userEvent.setup();
     render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -133,9 +127,8 @@ describe('CreateTaskModal', () => {
 
     render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -180,9 +173,8 @@ describe('CreateTaskModal', () => {
 
     render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -205,9 +197,8 @@ describe('CreateTaskModal', () => {
   it('should set default values correctly', () => {
     render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -224,9 +215,8 @@ describe('CreateTaskModal', () => {
     const user = userEvent.setup();
     render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -243,9 +233,8 @@ describe('CreateTaskModal', () => {
     const user = userEvent.setup();
     render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -275,9 +264,8 @@ describe('CreateTaskModal', () => {
 
     render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -303,9 +291,8 @@ describe('CreateTaskModal', () => {
     const user = userEvent.setup();
     render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -324,9 +311,8 @@ describe('CreateTaskModal', () => {
     const user = userEvent.setup();
     render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -340,9 +326,8 @@ describe('CreateTaskModal', () => {
     const user = userEvent.setup();
     const { rerender } = render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -360,9 +345,8 @@ describe('CreateTaskModal', () => {
     // Reopen modal
     rerender(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -379,9 +363,8 @@ describe('CreateTaskModal', () => {
 
     render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 
@@ -404,9 +387,8 @@ describe('CreateTaskModal', () => {
   it('should handle accessibility attributes', () => {
     render(
       <CreateTaskModal
-        isOpen={true}
         onClose={mockOnClose}
-        onTaskCreated={mockOnTaskCreated}
+        onSubmit={mockOnTaskCreated}
       />
     );
 

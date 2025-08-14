@@ -24,4 +24,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  esbuild: {
+    target: 'node18',
+  },
+  optimizeDeps: {
+    exclude: ['@rollup/rollup-linux-arm64-gnu', '@rollup/rollup-linux-arm64-musl'],
+  },
 });

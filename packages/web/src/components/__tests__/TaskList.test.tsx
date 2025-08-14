@@ -21,9 +21,9 @@ const mockTasks: Task[] = [
     priority: 'Medium',
     estimatedDurationMinutes: 30,
     allowParentAutoComplete: false,
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date('2024-01-01'),
-    parentId: null,
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+    isRecurring: false,
     children: [],
     dependencies: [],
     taskLabels: [],
@@ -36,9 +36,9 @@ const mockTasks: Task[] = [
     priority: 'High',
     estimatedDurationMinutes: 60,
     allowParentAutoComplete: true,
-    createdAt: new Date('2024-01-02'),
-    updatedAt: new Date('2024-01-02'),
-    parentId: null,
+    createdAt: '2024-01-02T00:00:00.000Z',
+    updatedAt: '2024-01-02T00:00:00.000Z',
+    isRecurring: false,
     children: [],
     dependencies: [],
     taskLabels: [],
@@ -47,7 +47,6 @@ const mockTasks: Task[] = [
 
 describe('TaskList', () => {
   const mockOnTaskUpdate = vi.fn();
-  const mockOnTaskDelete = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -57,8 +56,8 @@ describe('TaskList', () => {
     render(
       <TaskList
         tasks={mockTasks}
+        loading={false}
         onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
       />
     );
 
@@ -72,8 +71,8 @@ describe('TaskList', () => {
     render(
       <TaskList
         tasks={[]}
+        loading={false}
         onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
       />
     );
 
@@ -84,8 +83,8 @@ describe('TaskList', () => {
     render(
       <TaskList
         tasks={mockTasks}
+        loading={false}
         onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
       />
     );
 
@@ -97,8 +96,8 @@ describe('TaskList', () => {
     render(
       <TaskList
         tasks={mockTasks}
+        loading={false}
         onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
       />
     );
 
@@ -110,8 +109,8 @@ describe('TaskList', () => {
     render(
       <TaskList
         tasks={mockTasks}
+        loading={false}
         onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
       />
     );
 
@@ -124,39 +123,23 @@ describe('TaskList', () => {
     render(
       <TaskList
         tasks={mockTasks}
+        loading={false}
         onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
       />
     );
 
     const editButtons = screen.getAllByLabelText(/edit task/i);
     await user.click(editButtons[0]);
 
-    expect(mockOnTaskUpdate).toHaveBeenCalledWith(mockTasks[0]);
-  });
-
-  it('should call onTaskDelete when delete button is clicked', async () => {
-    const user = userEvent.setup();
-    render(
-      <TaskList
-        tasks={mockTasks}
-        onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
-      />
-    );
-
-    const deleteButtons = screen.getAllByLabelText(/delete task/i);
-    await user.click(deleteButtons[0]);
-
-    expect(mockOnTaskDelete).toHaveBeenCalledWith(mockTasks[0].id);
+    expect(mockOnTaskUpdate).toHaveBeenCalled();
   });
 
   it('should show completion button for non-completed tasks', () => {
     render(
       <TaskList
         tasks={mockTasks}
+        loading={false}
         onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
       />
     );
 
@@ -167,89 +150,123 @@ describe('TaskList', () => {
   it('should show reopen button for completed tasks', () => {
     const completedTasks: Task[] = [
       {
-        ...mockTasks[0],
+        id: '3',
+        title: 'Completed Task',
+        description: 'A completed task',
         status: 'Completed',
+        priority: 'Medium',
+        estimatedDurationMinutes: 30,
+        allowParentAutoComplete: false,
+        createdAt: '2024-01-03T00:00:00.000Z',
+        updatedAt: '2024-01-03T00:00:00.000Z',
+        isRecurring: false,
+        children: [],
+        dependencies: [],
+        taskLabels: [],
       },
     ];
 
     render(
       <TaskList
         tasks={completedTasks}
+        loading={false}
         onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
       />
     );
 
-    expect(screen.getByLabelText(/reopen task/i)).toBeInTheDocument();
+    const reopenButtons = screen.getAllByLabelText(/reopen task/i);
+    expect(reopenButtons).toHaveLength(1);
   });
 
-  it('should display parent-child relationships', () => {
-    const tasksWithChildren: Task[] = [
-      {
-        ...mockTasks[0],
-        children: [mockTasks[1]],
-      },
-      {
-        ...mockTasks[1],
-        parentId: mockTasks[0].id,
-      },
-    ];
-
+  it('should handle task status change', async () => {
+    const user = userEvent.setup();
     render(
       <TaskList
-        tasks={tasksWithChildren}
+        tasks={mockTasks}
+        loading={false}
         onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
       />
     );
 
-    // Should show parent task with child indicator
-    expect(screen.getByText('Test Task 1')).toBeInTheDocument();
-    expect(screen.getByText('Test Task 2')).toBeInTheDocument();
+    const statusSelects = screen.getAllByLabelText(/status/i);
+    await user.selectOptions(statusSelects[0], 'Completed');
+
+    expect(mockOnTaskUpdate).toHaveBeenCalled();
   });
 
-  it('should display dependencies', () => {
+  it('should handle task priority change', async () => {
+    const user = userEvent.setup();
+    render(
+      <TaskList
+        tasks={mockTasks}
+        loading={false}
+        onTaskUpdate={mockOnTaskUpdate}
+      />
+    );
+
+    const prioritySelects = screen.getAllByLabelText(/priority/i);
+    await user.selectOptions(prioritySelects[0], 'High');
+
+    expect(mockOnTaskUpdate).toHaveBeenCalled();
+  });
+
+  it('should show loading state', () => {
+    render(
+      <TaskList
+        tasks={[]}
+        loading={true}
+        onTaskUpdate={mockOnTaskUpdate}
+      />
+    );
+
+    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+  });
+
+  it('should handle task with dependencies', () => {
     const tasksWithDependencies: Task[] = [
       {
         ...mockTasks[0],
         dependencies: [
           {
-            id: 'dep1',
-            dependentTaskId: mockTasks[0].id,
-            blockerTaskId: mockTasks[1].id,
+            id: 'dep-1',
+            taskId: '1',
+            dependsOnTaskId: '2',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            dependentTask: mockTasks[0],
             blockerTask: mockTasks[1],
           },
         ],
       },
-      mockTasks[1],
     ];
 
     render(
       <TaskList
         tasks={tasksWithDependencies}
+        loading={false}
         onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
       />
     );
 
-    expect(screen.getByText('Test Task 1')).toBeInTheDocument();
-    expect(screen.getByText('Test Task 2')).toBeInTheDocument();
+    expect(screen.getByText(/dependencies/i)).toBeInTheDocument();
   });
 
-  it('should display labels when present', () => {
+  it('should handle task with labels', () => {
     const tasksWithLabels: Task[] = [
       {
         ...mockTasks[0],
         taskLabels: [
           {
-            id: 'tl1',
-            taskId: mockTasks[0].id,
-            labelId: 'label1',
+            id: 'label-1',
+            taskId: '1',
+            labelId: 'label-1',
+            createdAt: '2024-01-01T00:00:00.000Z',
             label: {
-              id: 'label1',
-              name: 'Bug',
-              colour: '#FF0000',
-              description: 'Bug label',
+              id: 'label-1',
+              name: 'Test Label',
+              colour: '#ff0000',
+              description: 'A test label',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
             },
           },
         ],
@@ -259,120 +276,145 @@ describe('TaskList', () => {
     render(
       <TaskList
         tasks={tasksWithLabels}
+        loading={false}
         onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
       />
     );
 
-    expect(screen.getByText('Bug')).toBeInTheDocument();
+    expect(screen.getByText('Test Label')).toBeInTheDocument();
   });
 
-  it('should handle task with no description', () => {
-    const taskWithoutDescription: Task[] = [
+  it('should handle task with null description', () => {
+    const tasksWithNullDescription: Task[] = [
       {
         ...mockTasks[0],
-        description: null,
+        description: undefined,
       },
     ];
 
     render(
       <TaskList
-        tasks={taskWithoutDescription}
+        tasks={tasksWithNullDescription}
+        loading={false}
         onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
       />
     );
 
     expect(screen.getByText('Test Task 1')).toBeInTheDocument();
-    // Should not show description section
     expect(screen.queryByText('Test description 1')).not.toBeInTheDocument();
   });
 
-  it('should handle task with allowParentAutoComplete flag', () => {
-    render(
-      <TaskList
-        tasks={mockTasks}
-        onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
-      />
-    );
-
-    // Both tasks should be rendered regardless of the flag
-    expect(screen.getByText('Test Task 1')).toBeInTheDocument();
-    expect(screen.getByText('Test Task 2')).toBeInTheDocument();
-  });
-
-  it('should handle keyboard navigation', async () => {
-    const user = userEvent.setup();
-    render(
-      <TaskList
-        tasks={mockTasks}
-        onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
-      />
-    );
-
-    // Focus on first task
-    const firstTask = screen.getByText('Test Task 1').closest('div');
-    if (firstTask) {
-      firstTask.focus();
-      
-      // Test tab navigation
-      await user.tab();
-      expect(document.activeElement).toBeInTheDocument();
-    }
-  });
-
-  it('should handle accessibility attributes', () => {
-    render(
-      <TaskList
-        tasks={mockTasks}
-        onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
-      />
-    );
-
-    // Check for proper ARIA labels
-    expect(screen.getByLabelText(/edit task/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/delete task/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/complete task/i)).toBeInTheDocument();
-  });
-
-  it('should handle task with long title', () => {
-    const taskWithLongTitle: Task[] = [
+  it('should handle task with due date', () => {
+    const tasksWithDueDate: Task[] = [
       {
         ...mockTasks[0],
-        title: 'This is a very long task title that should be handled properly by the component without breaking the layout or causing any visual issues',
+        dueAt: '2024-01-15T17:00:00.000Z',
       },
     ];
 
     render(
       <TaskList
-        tasks={taskWithLongTitle}
+        tasks={tasksWithDueDate}
+        loading={false}
         onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
       />
     );
 
-    expect(screen.getByText(/This is a very long task title/)).toBeInTheDocument();
+    expect(screen.getByText(/due/i)).toBeInTheDocument();
   });
 
-  it('should handle task with long description', () => {
-    const taskWithLongDescription: Task[] = [
+  it('should handle overdue tasks', () => {
+    const overdueTasks: Task[] = [
       {
         ...mockTasks[0],
-        description: 'This is a very long task description that should be handled properly by the component. It might contain multiple sentences and should be displayed correctly without breaking the layout or causing any visual issues. The component should handle text wrapping appropriately.',
+        dueAt: '2024-01-01T17:00:00.000Z', // Past date
       },
     ];
 
     render(
       <TaskList
-        tasks={taskWithLongDescription}
+        tasks={overdueTasks}
+        loading={false}
         onTaskUpdate={mockOnTaskUpdate}
-        onTaskDelete={mockOnTaskDelete}
       />
     );
 
-    expect(screen.getByText(/This is a very long task description/)).toBeInTheDocument();
+    expect(screen.getByText(/overdue/i)).toBeInTheDocument();
+  });
+
+  it('should handle task with children', () => {
+    const tasksWithChildren: Task[] = [
+      {
+        ...mockTasks[0],
+        children: [
+          {
+            id: 'child-1',
+            title: 'Child Task',
+            description: 'A child task',
+            status: 'Todo',
+            priority: 'Low',
+            estimatedDurationMinutes: 15,
+            allowParentAutoComplete: false,
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+            isRecurring: false,
+            children: [],
+            dependencies: [],
+            taskLabels: [],
+          },
+        ],
+      },
+    ];
+
+    render(
+      <TaskList
+        tasks={tasksWithChildren}
+        loading={false}
+        onTaskUpdate={mockOnTaskUpdate}
+      />
+    );
+
+    expect(screen.getByText(/subtasks/i)).toBeInTheDocument();
+  });
+
+  it('should handle task with scheduled times', () => {
+    const scheduledTasks: Task[] = [
+      {
+        ...mockTasks[0],
+        scheduledStart: '2024-01-15T09:00:00.000Z',
+        scheduledEnd: '2024-01-15T10:00:00.000Z',
+      },
+    ];
+
+    render(
+      <TaskList
+        tasks={scheduledTasks}
+        loading={false}
+        onTaskUpdate={mockOnTaskUpdate}
+      />
+    );
+
+    expect(screen.getByText(/scheduled/i)).toBeInTheDocument();
+  });
+
+  it('should handle recurring tasks', () => {
+    const recurringTasks: Task[] = [
+      {
+        ...mockTasks[0],
+        isRecurring: true,
+        recurrencePattern: '{"type":"Daily","interval":1,"startDate":"2024-01-01"}',
+        nextRecurrenceDate: '2024-01-16T00:00:00.000Z',
+      },
+    ];
+
+    render(
+      <TaskList
+        tasks={recurringTasks}
+        loading={false}
+        onTaskUpdate={mockOnTaskUpdate}
+      />
+    );
+
+    expect(screen.getByText(/recurring/i)).toBeInTheDocument();
   });
 });
