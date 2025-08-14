@@ -415,4 +415,34 @@ describe('CreateTaskModal', () => {
     expect(screen.getByLabelText(/title/i)).toHaveAttribute('required');
     expect(screen.getByLabelText(/close/i)).toBeInTheDocument();
   });
+
+  it('should pre-select parent task when parentTaskId is provided', async () => {
+    const mockTasks = [
+      { id: 'parent-1', title: 'Parent Task 1' },
+      { id: 'parent-2', title: 'Parent Task 2' },
+    ];
+
+    // Mock the fetch call
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: mockTasks }),
+    });
+
+    render(
+      <CreateTaskModal
+        onClose={mockOnClose}
+        onSubmit={mockOnTaskCreated}
+        parentTaskId="parent-1"
+      />
+    );
+
+    // Wait for tasks to load
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/tasks');
+    });
+
+    // Check that the parent task is pre-selected
+    const parentSelect = screen.getByLabelText(/parent task/i);
+    expect(parentSelect).toHaveValue('parent-1');
+  });
 });
