@@ -275,7 +275,7 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
     <>
       <div className="space-y-2">
         {tasks.map((task) => (
-          <div key={task.id} className="card">
+          <div key={task.id} data-task-id={task.id} className={`card ${task.parentId ? 'ml-4 border-l-4 border-l-blue-200' : ''}`}>
             <div className="card-content">
               <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-3 flex-1">
@@ -294,6 +294,29 @@ export default function TaskList({ tasks, loading, onTaskUpdate }: TaskListProps
                       <span className={`badge ${getPriorityColor(task.priority)}`}>
                         {task.priority}
                       </span>
+                      {task.parentId && task.parent && (
+                        <button
+                          onClick={() => {
+                            // Find the parent task in the current list and scroll to it
+                            const parentElement = document.querySelector(`[data-task-id="${task.parentId}"]`);
+                            if (parentElement) {
+                              parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              // Add a brief highlight effect
+                              parentElement.classList.add('ring-2', 'ring-blue-500', 'ring-opacity-50');
+                              setTimeout(() => {
+                                parentElement.classList.remove('ring-2', 'ring-blue-500', 'ring-opacity-50');
+                              }, 2000);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors cursor-pointer"
+                          title={`Click to view parent task: ${task.parent.title}`}
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+                          </svg>
+                          Parent: {task.parent.title}
+                        </button>
+                      )}
                       {isOverdue(task) && (
                         <span className="badge badge-danger">Overdue</span>
                       )}
